@@ -1,3 +1,5 @@
+const sheetDbApiUrl = "https://sheetdb.io/api/v1/oeekw8q418ysi";
+
 // توليد ID عشوائي لطالب
 function generateStudentID() {
     return 'AZ' + Math.floor(100000 + Math.random() * 900000);
@@ -13,7 +15,7 @@ function getOrCreateDeviceId() {
     return deviceId;
 }
 
-// إنشاء حساب جديد مع قيد الجهاز الواحد (مع استثناء الإدارة Emoo وحالة قفل الأدمن)
+// إنشاء حساب جديد مع قيد الجهاز الواحد (مع استثناء الإدارة Emoo وحالة قفل الأدمن) + إرسال البيانات لتبويب Students
 function createAccount() {
     const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false';
     const currentDeviceId = getOrCreateDeviceId();
@@ -62,9 +64,31 @@ function createAccount() {
         totalViolations: 0  
     };
 
+    // حفظ محلي في المتصفح
     localStorage.setItem(newId, JSON.stringify(userData));
     localStorage.setItem('currentUser', JSON.stringify(userData));
     localStorage.setItem(deviceOwnerKey, newId);
+
+    // إرسال البيانات سحابياً إلى تبويب Students عبر SheetDB
+    fetch(sheetDbApiUrl + "?sheet=Students", {
+        method: "POST",
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            data: [{
+                id: newId,
+                name: name,
+                phone: phone,
+                grade: grade,
+                password: password
+            }]
+        })
+    })
+    .then(response => response.json())
+    .then(data => console.log("Student saved to Sheet:", data))
+    .catch(error => console.error("Error saving student:", error));
 
     // عرض تنبيه واضح ومفصل بالـ ID لكي لا ينساه الطالب أبداً
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n🔑 كلمة السر: ${password}\n\n⚠️ من فضلك احتفظ بهذا الـ (ID) جيداً لتسجيل الدخول به في كل مرة!`);
@@ -138,7 +162,7 @@ function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام 300 متر + كود الاستثناء 012288)
+// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام 300 متر + كود الاستثناء 012288) + إرسال البيانات لتبويب Attendance
 function submitFinalAttendance() {
     const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
     if (!isAttendanceOpen) {
@@ -205,6 +229,30 @@ function submitFinalAttendance() {
             localStorage.setItem(user.id, JSON.stringify(freshUser));
             localStorage.setItem('currentUser', JSON.stringify(freshUser));
         }
+
+        // إرسال الحضور سحابياً إلى تبويب Attendance عبر SheetDB
+        fetch(sheetDbApiUrl + "?sheet=Attendance", {
+            method: "POST",
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                data: [{
+                    id: user.id,
+                    name: user.name,
+                    phone: user.phone,
+                    grade: user.grade,
+                    subject: subject,
+                    time: time,
+                    locationLink: mapsUrl,
+                    isOutlier: isOutlier ? "نعم" : "لا"
+                }]
+            })
+        })
+        .then(response => response.json())
+        .then(data => console.log("Attendance saved to Sheet:", data))
+        .catch(error => console.error("Error saving attendance:", error));
 
         statusMsg.style.color = "green";
         statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
