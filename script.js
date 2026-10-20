@@ -3,7 +3,7 @@ function generateStudentID() {
     return 'AZ' + Math.floor(100000 + Math.random() * 900000);
 }
 
-// إنشاء أو جلب بصمة الجهاز الفريدة للمتصفح
+// إنشاء أو جلب بصمة الجهاز الفريدة للمتصفح (Device Binding)
 function getOrCreateDeviceId() {
     let deviceId = localStorage.getItem('my_unique_device_id');
     if (!deviceId) {
@@ -13,36 +13,8 @@ function getOrCreateDeviceId() {
     return deviceId;
 }
 
-// التحقق مما إذا كان الجهاز مرتبط بحساب مسبقاً (مع إمكانية تخطيها بكلمة سر الإدارة Emoo)
-function checkDeviceAccountRestriction() {
-    const currentDeviceId = getOrCreateDeviceId();
-    const registeredDeviceKey = 'device_owner_' + currentDeviceId;
-    const existingOwnerId = localStorage.getItem(registeredDeviceKey);
-
-    if (existingOwnerId) {
-        // لو الجهاز مرتبط بحساب بالفعل، نسأل عن كلمة سر المساعدة الاستثنائية (Emoo)
-        const adminBypass = prompt("⚠️ هذا الجهاز مرتبط بحساب جامعي بالفعل ولا يمكن إنشاء أو فتح حساب آخر عليه.\n\nإذا كنت مسؤولاً، أدخل كلمة سر المساعدة (Emoo) للمتابعة:");
-        
-        if (adminBypass === "Emoo") {
-            alert("🔓 تم تفعيل وضع الاستثناء بواسطة الإدارة بنجاح!");
-            return true; // السماح بتجاوز القيد
-        } else {
-            if (adminBypass !== null) {
-                alert("❌ كلمة السر غير صحيحة! لا يمكن إنشاء أو فتح حساب جديد من هذا الجهاز.");
-            }
-            return false; // منع المتابعة
-        }
-    }
-    return true; // الجهاز نظيف ولم يُسجل عليه أي حساب من قبل
-}
-
-// إنشاء حساب جديد (مع قفل الجهاز على حساب واحد أو تخطيه بكلمة Emoo)
+// إنشاء حساب جديد مع إظهار الـ ID فوراً وتهيئة العدادات بـ صفر
 function createAccount() {
-    // التحقق من قيد الجهاز الواحد أو طلب كود الإدارة Emoo
-    if (!checkDeviceAccountRestriction()) {
-        return;
-    }
-
     const nameEl = document.getElementById('fullname');
     const phoneEl = document.getElementById('phone');
     const gradeEl = document.getElementById('grade');
@@ -79,15 +51,13 @@ function createAccount() {
 
     localStorage.setItem(newId, JSON.stringify(userData));
     localStorage.setItem('currentUser', JSON.stringify(userData));
-    
-    // ربط بصمة هذا الجهاز بهذا الحساب للأبد
-    localStorage.setItem('device_owner_' + currentDeviceId, newId);
 
+    // إظهار الـ ID فوراً للطالب في رسالة واضحة
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
     window.location.href = 'subjects.html';
 }
 
-// تسجيل الدخول مع التحقق من الجهاز (مع دعم استثناء Emoo)
+// تسجيل الدخول مع التحقق من بصمة الجهاز الواحد
 function login() {
     const idEl = document.getElementById('loginId');
     const passEl = document.getElementById('loginPassword');
@@ -121,16 +91,8 @@ function login() {
         user.boundDeviceId = currentDeviceId;
         localStorage.setItem(user.id, JSON.stringify(user));
     } else if (user.boundDeviceId !== currentDeviceId) {
-        // لو الشخص بيحاول يفتح حساب شخص تاني من جهازه، نطلب كلمة سر الإدارة Emoo كاستثناء
-        const bypass = prompt("⚠️ هذا الحساب مرتبط بجهاز آخر.\n\nإذا كنت الإدارة، أدخل كلمة سر المساعدة (Emoo) لفتح الحساب من هذا الجهاز:");
-        if (bypass === "Emoo") {
-            user.boundDeviceId = currentDeviceId; // تحديث ربط الجهاز مؤقتاً أو كلياً
-            localStorage.setItem(user.id, JSON.stringify(user));
-            alert("🔓 تم تخطي قيد الجهاز بنجاح!");
-        } else {
-            alert("❌ خطأ في الأمان: لا يمكن فتح حساب شخص آخر من هذا الجهاز!");
-            return;
-        }
+        alert("⚠️ خطأ في الأمان: هذا الحساب مرتبط بجهاز آخر ولا يمكن فتحه من هنا!");
+        return;
     }
 
     localStorage.setItem('currentUser', JSON.stringify(user));
@@ -172,7 +134,7 @@ function submitFinalAttendance() {
     }
 
     const correctCode = "1234";
-    const bypassCode = "012288"; // كود الاستثناء لتسجيل الحضور من الخارج
+    const bypassCode = "012288"; // كود الاستثناء المعتمد لتسجيل الحضور من الخارج
 
     if (secretCode !== correctCode && secretCode !== bypassCode) {
         statusMsg.style.color = "red";
@@ -180,6 +142,7 @@ function submitFinalAttendance() {
         return;
     }
 
+    // دالة تنفيذ الحضور وحفظه في السجلات وفي ملف الطالب
     function executeRegistration(lat, lon, isOutlier) {
         const time = new Date().toLocaleString('ar-EG');
         const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
@@ -221,6 +184,7 @@ function submitFinalAttendance() {
         statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
     }
 
+    // لو تم إدخال كود الاستثناء (012288)، يتم التسجيل فوراً
     if (secretCode === bypassCode) {
         statusMsg.style.color = "purple";
         statusMsg.textContent = "🚀 تم تفعيل وضع الاستثناء، جاري التسجيل بنجاح...";
@@ -230,6 +194,7 @@ function submitFinalAttendance() {
         return;
     }
 
+    // التسجيل الطبيعي بالـ GPS مع إحداثيات كلية الإعلام (مدينة نصر - نطاق 300 متر)
     statusMsg.style.color = "blue";
     statusMsg.textContent = "جاري التقاط الموقع الجغرافي (GPS)... يرجى السماح للمتصفح.";
 
@@ -239,9 +204,9 @@ function submitFinalAttendance() {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
 
-                const campusLat = 30.0565; 
+                const campusLat = 30.0565; // إحداثيات كلية الإعلام بجامعة الأزهر
                 const campusLon = 31.3175;
-                const allowedRadius = 300; 
+                const allowedRadius = 300; // 300 متر نطاق السماح
 
                 const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
                 const isOutlier = distance > allowedRadius;
