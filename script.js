@@ -57,6 +57,7 @@ function createAccount() {
         grade: grade, 
         password: password,
         boundDeviceId: currentDeviceId,
+        isAdmin: false, // افتراضياً طالب عادي
         totalAttendance: 0, 
         totalViolations: 0  
     };
@@ -69,7 +70,7 @@ function createAccount() {
     window.location.href = 'subjects.html';
 }
 
-// تسجيل الدخول مع استثناء الحسابات الإدارية أو استخدام كلمة Emoo لفتح الحساب من أي جهاز
+// تسجيل الدخول مع السماح للحسابات التي تمت ترقيتها كأدمن من لوحة التحكم بالدخول من أي جهاز
 function login() {
     const idEl = document.getElementById('loginId');
     const passEl = document.getElementById('loginPassword');
@@ -98,20 +99,18 @@ function login() {
     }
 
     const currentDeviceId = getOrCreateDeviceId();
-
-    // استثناء خاص لو الحساب مخصص للإدارة أو لو الطالب كتب كلمة Emoo
-    const isAdminAccount = user.isAdmin || id.toLowerCase().includes('admin') || user.grade === 'admin';
+    const isUserAdmin = user.isAdmin === true;
 
     if (!user.boundDeviceId) {
         user.boundDeviceId = currentDeviceId;
         localStorage.setItem(user.id, JSON.stringify(user));
     } else if (user.boundDeviceId !== currentDeviceId) {
-        // لو الحساب مش إداري ومحسوب على جهاز تاني، بنطلب كلمة Emoo للاستثناء
-        if (isAdminAccount) {
-            // الإدارة تفتح من أي جهاز بدون إزعاج
+        // لو الحساب أدمن يفتح من أي جهاز بدون أي أسئلة
+        if (isUserAdmin) {
             user.boundDeviceId = currentDeviceId;
             localStorage.setItem(user.id, JSON.stringify(user));
         } else {
+            // للطالب العادي يرفض إلا بكلمة السر Emoo
             const bypass = prompt("⚠️ هذا الحساب مرتبط بجهاز آخر.\n\nإذا كنت الإدارة، أدخل كلمة السر لفتح الحساب:");
             if (bypass === "Emoo") {
                 user.boundDeviceId = currentDeviceId;
@@ -163,7 +162,7 @@ function submitFinalAttendance() {
     }
 
     const correctCode = "1234";
-    const bypassCode = "012288"; // كود الاستثناء لتسجيل الحضور من الخارج
+    const bypassCode = "012288"; 
 
     if (secretCode !== correctCode && secretCode !== bypassCode) {
         statusMsg.style.color = "red";
