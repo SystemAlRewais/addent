@@ -1,1 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كلية الإعلام - جامعة الأزهر</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>كلية الإعلام - جامعة الأزهر</h2>
+        
+        <div class="tab-buttons">
+            <button id="tabLoginBtn" class="active-tab" onclick="showTab('login')">تسجيل الدخول</button>
+            <button id="tabSignupBtn" onclick="showTab('signup')">إنشاء حساب جديد</button>
+        </div>
 
+        <!-- 1. تسجيل دخول الطالب -->
+        <div id="loginBox">
+            <div class="input-group">
+                <label>الرقم الجامعي (ID):</label>
+                <input type="text" id="loginId" placeholder="أدخل الرقم الجامعي (مثال: AZ123456)">
+            </div>
+            <div class="input-group">
+                <label>كلمة السر:</label>
+                <input type="password" id="loginPassword" placeholder="أدخل كلمة السر">
+            </div>
+            <button type="button" onclick="login()">دخول المنصة</button>
+        </div>
+
+        <!-- 2. إنشاء حساب طالب جديد -->
+        <div id="signupBox" style="display: none;">
+            <div class="input-group">
+                <label>الاسم ثلاثي:</label>
+                <input type="text" id="fullname" placeholder="أدخل اسمك الثلاثي">
+            </div>
+            <div class="input-group">
+                <label>رقم التليفون:</label>
+                <input type="tel" id="phone" placeholder="01xxxxxxxx">
+            </div>
+            <div class="input-group">
+                <label>الفرقة الدراسية:</label>
+                <select id="grade">
+                    <option value="الفرقة الأولى">الفرقة الأولى</option>
+                    <option value="الفرقة الثانية">الفرقة الثانية</option>
+                    <option value="الفرقة الثالثة">الفرقة الثالثة</option>
+                    <option value="الفرقة الرابعة">الفرقة الرابعة</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>كلمة السر:</label>
+                <input type="password" id="password" placeholder="أدخل كلمة السر">
+            </div>
+            <button type="button" onclick="createAccount()">إنشاء الحساب</button>
+        </div>
+
+        <p id="authStatus"></p>
+
+        <hr style="margin-top: 25px; border: 0.5px solid #eee;">
+        <a href="admin.html" style="font-size: 12px; color: #888; text-decoration: none;">🔐 بوابة دكتور المادة / الإدارة</a>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function showTab(tab) {
+            if(tab === 'login') {
+                document.getElementById('loginBox').style.display = 'block';
+                document.getElementById('signupBox').style.display = 'none';
+                document.getElementById('tabLoginBtn').classList.add('active-tab');
+                document.getElementById('tabSignupBtn').classList.remove('active-tab');
+            } else {
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('signupBox').style.display = 'block';
+                document.getElementById('tabSignupBtn').classList.add('active-tab');
+                document.getElementById('tabLoginBtn').classList.remove('active-tab');
+            }
+        }
+    </script>
+</body>
+</html>
