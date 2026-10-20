@@ -1,171 +1,135 @@
-function generateStudentID() {
-    return 'AZ' + Math.floor(100000 + Math.random() * 900000);
-}
+// إحداثيات كلية الإعلام - جامعة الأزهر بمدينة نصر
+const campusLat = 30.0565; 
+const campusLon = 31.3175;
+const allowedRadius = 300; // مسافة السماح بالمتر داخل محيط الكلية
 
-function getOrCreateDeviceId() {
-    let deviceId = localStorage.getItem('my_unique_device_id');
-    if (!deviceId) {
-        deviceId = 'DEV-' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        localStorage.setItem('my_unique_device_id', deviceId);
-    }
-    return deviceId;
-}
-
-function createAccount() {
-    const name = document.getElementById('fullname').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const grade = document.getElementById('grade').value;
-    const password = document.getElementById('password').value.trim();
-
-    if (!name || !phone || !grade || !password) {
-        alert("من فضلك أكمل جميع البيانات!");
-        return;
-    }
-
-    const newId = generateStudentID();
-    const currentDeviceId = getOrCreateDeviceId();
-
-    const userData = { 
-        id: newId, 
-        name: name, 
-        phone: phone, 
-        grade: grade, 
-        password: password,
-        boundDeviceId: currentDeviceId,
-        totalAttendance: 0,
-        totalViolations: 0
-    };
-
-    localStorage.setItem(newId, JSON.stringify(userData));
-
-    alert(`تم إنشاء الحساب بنجاح!\nالرقم الجامعي (ID): ${newId}`);
-    window.location.href = 'index.html';
-}
-
+// دالة تسجيل الدخول
 function login() {
-    const id = document.getElementById('loginId').value.trim();
-    const pass = document.getElementById('loginPassword').value.trim();
+    const id = document.getElementById('studentId').value.trim();
+    const password = document.getElementById('studentPassword').value.trim();
 
-    if (!id || !pass) {
-        alert("يرجى إدخال الرقم الجامعي وكلمة السر!");
+    if (!id || !password) {
+        alert('من فضلك أدخل الرقم الجامعي وكلمة المرور!');
         return;
     }
 
-    const savedUser = localStorage.getItem(id);
-    if (!savedUser) {
-        alert("هذا الـ ID غير مسجل!");
-        return;
-    }
+    let users = JSON.parse(localStorage.getItem('registeredUsers')) || [];
+    let user = users.find(u => u.id === id);
 
-    const user = JSON.parse(savedUser);
+    const currentDeviceFingerprint = getDeviceFingerprint();
 
-    if (user.password !== pass) {
-        alert("كلمة السر غير صحيحة!");
-        return;
-    }
+    if (user) {
+        if (user.password !== password) {
+            alert('كلمة المرور غير صحيحة!');
+            return;
+        }
+        if (user.deviceFingerprint && user.deviceFingerprint !== currentDeviceFingerprint) {
+            alert('⚠️ خطأ في الأمان: هذا الحساب مرتبط بجهاز آخر ولا يمكن فتحه من هنا!');
+            return;
+        }
+    } else {
+        const studentNames = {
+            "12345": "أحمد محمد",
+            "54321": "محمود علي"
+        };
+        const name = studentNames[id] || "طالب جامعي";
 
-    const currentDeviceId = getOrCreateDeviceId();
-
-    if (!user.boundDeviceId) {
-        user.boundDeviceId = currentDeviceId;
-        localStorage.setItem(user.id, JSON.stringify(user));
-    } else if (user.boundDeviceId !== currentDeviceId) {
-        alert("⚠️ خطأ في الأمان: هذا الحساب مرتبط بجهاز آخر ولا يمكن فتحه من هنا!");
-        return;
+        user = {
+            id: id,
+            name: name,
+            password: password,
+            deviceFingerprint: currentDeviceFingerprint
+        };
+        users.push(user);
+        localStorage.setItem('registeredUsers', JSON.stringify(users));
     }
 
     localStorage.setItem('currentUser', JSON.stringify(user));
     window.location.href = 'subjects.html';
 }
 
-function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
+// دالة بصمة الجهاز
+function getDeviceFingerprint() {
+    let fp = localStorage.getItem('device_fp');
+    if (!fp) {
+        fp = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        localStorage.setItem('device_fp', fp);
+    }
+    return fp;
+}
+
+// دالة حساب المسافة بين إحداثيات الطالب وموقع الكلية (بالأمتار)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // نصف قطر الأرض بالمتر
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
     return R * c;
 }
 
-function submitFinalAttendance() {
-    const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
-    if (!isAttendanceOpen) {
-        alert("التسجيل مغلق حالياً من قبل الدكتور!");
-        return;
-    }
-
-    const secretCode = document.getElementById('secretCode').value.trim();
-    const statusMsg = document.getElementById('statusMsg');
+// دالة التحقق من الـ GPS وتسجيل الحضور
+function verifyAndAttend() {
+    const statusText = document.getElementById('statusText');
+    const subject = localStorage.getItem('selectedSubject') || "مادة غير محددة";
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    const subject = localStorage.getItem('selectedSubject');
 
-    const correctCode = "1234";
-
-    if (secretCode !== correctCode) {
-        statusMsg.style.color = "red";
-        statusMsg.textContent = "الكود السري للمحاضرة غير صحيح!";
+    if (!user) {
+        window.location.href = 'index.html';
         return;
     }
 
-    statusMsg.style.color = "blue";
-    statusMsg.textContent = "جاري التقاط الموقع والتأكد من الـ GPS...";
+    if (!navigator.geolocation) {
+        statusText.innerHTML = "❌ متصفحك لا يدعم خاصية تحديد الموقع (GPS).";
+        statusText.style.color = "red";
+        return;
+    }
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                const time = new Date().toLocaleString('ar-EG');
-                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+    statusText.innerHTML = "⏳ جاري تحديد موقعك الجغرافي داخل الكلية...";
+    statusText.style.color = "#007bff";
 
-                const campusLat = 30.0600; 
-                const campusLon = 31.3200;
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
 
-                const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
-                const isOutlier = distance > 500;
+            const distance = calculateDistance(userLat, userLon, campusLat, campusLon);
 
-                const record = {
-                    id: user.id,
-                    name: user.name,
-                    phone: user.phone,
-                    grade: user.grade,
-                    subject: subject,
-                    time: time,
-                    locationLink: mapsUrl,
-                    isOutlier: isOutlier
-                };
-
-                let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
+            if (distance <= allowedRadius) {
+                let attendanceList = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
                 
-                const alreadyRegistered = allAttendance.some(r => r.id === user.id);
-                if (alreadyRegistered) {
-                    statusMsg.style.color = "orange";
-                    statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المحاضرة مسبقاً!";
+                const alreadyRecorded = attendanceList.some(item => item.id === user.id && item.subject === subject);
+                if (alreadyRecorded) {
+                    statusText.innerHTML = `✅ أنت مسجل بالفعل في حضور مادة: (${subject})`;
+                    statusText.style.color = "orange";
                     return;
                 }
 
-                allAttendance.push(record);
-                localStorage.setItem('allAttendanceRecords', JSON.stringify(allAttendance));
+                attendanceList.push({
+                    id: user.id,
+                    name: user.name,
+                    subject: subject,
+                    time: new Date().toLocaleString('ar-EG')
+                });
+                localStorage.setItem('attendanceRecords', JSON.stringify(attendanceList));
 
-                let freshUser = JSON.parse(localStorage.getItem(user.id));
-                if (freshUser) {
-                    freshUser.totalAttendance = (freshUser.totalAttendance || 0) + 1;
-                    if (isOutlier) {
-                        freshUser.totalViolations = (freshUser.totalViolations || 0) + 1;
-                    }
-                    localStorage.setItem(user.id, JSON.stringify(freshUser));
-                    localStorage.setItem('currentUser', JSON.stringify(freshUser));
-                }
-
-                statusMsg.style.color = "green";
-                statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}!`;
-            },
-            () => {
-                statusMsg.style.color = "red";
-                statusMsg.textContent = "فشل تحديد الموقع. يرجى تفعيل الـ GPS.";
+                statusText.innerHTML = `✅ تم تسجيل حضورك بنجاح في (${subject}) وأنت داخل الكلية!`;
+                statusText.style.color = "green";
+            } else {
+                statusText.innerHTML = `❌ عذراً، أنت خارج نطاق كلية الإعلام (المسافة: ${Math.round(distance)} متر). لا يمكنك تسجيل الحضور!`;
+                statusText.style.color = "red";
             }
-        );
-    }
+        },
+        (error) => {
+            statusText.innerHTML = "❌ فشل في تحديد الموقع. تأكد من تفعيل الـ GPS وإعطاء الصلاحية للمتصفح.";
+            statusText.style.color = "red";
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
 }
