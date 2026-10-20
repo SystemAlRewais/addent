@@ -3,7 +3,7 @@ function generateStudentID() {
     return 'AZ' + Math.floor(100000 + Math.random() * 900000);
 }
 
-// إنشاء أو جلب بصمة الجهاز الفريدة للمتصفح
+// إنشاء أو جلب بصمة الجهاز الفريدة للمتصفح (Device Binding)
 function getOrCreateDeviceId() {
     let deviceId = localStorage.getItem('my_unique_device_id');
     if (!deviceId) {
@@ -13,25 +13,25 @@ function getOrCreateDeviceId() {
     return deviceId;
 }
 
-// إنشاء حساب جديد (مضمون 100% بدون أي مشاكل)
+// إنشاء حساب جديد مع إظهار الـ ID فوراً وتهيئة العدادات بـ صفر
 function createAccount() {
-    const nameInput = document.getElementById('fullname');
-    const phoneInput = document.getElementById('phone');
-    const gradeInput = document.getElementById('grade');
-    const passwordInput = document.getElementById('password');
+    const nameEl = document.getElementById('fullname');
+    const phoneEl = document.getElementById('phone');
+    const gradeEl = document.getElementById('grade');
+    const passwordEl = document.getElementById('password');
 
-    if (!nameInput || !phoneInput || !gradeInput || !passwordInput) {
-        alert("خطأ: بعض حقول التسجيل غير موجودة في هذه الصفحة!");
+    if (!nameEl || !phoneEl || !gradeEl || !passwordEl) {
+        alert("من فضلك تأكد من إدخال جميع البيانات في الحقول المطلوبة!");
         return;
     }
 
-    const name = nameInput.value.trim();
-    const phone = phoneInput.value.trim();
-    const grade = gradeInput.value;
-    const password = passwordInput.value.trim();
+    const name = nameEl.value.trim();
+    const phone = phoneEl.value.trim();
+    const grade = gradeEl.value;
+    const password = passwordEl.value.trim();
 
     if (!name || !phone || !grade || !password) {
-        alert("من فضلك أكمل جميع البيانات المطلوبة!");
+        alert("من فضلك أكمل جميع البيانات!");
         return;
     }
 
@@ -49,26 +49,23 @@ function createAccount() {
         totalViolations: 0  
     };
 
-    // حفظ بيانات الطالب في التخزين المحلي
     localStorage.setItem(newId, JSON.stringify(userData));
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
-    // إظهار رسالة النجاح والـ ID فوراً
+    // إظهار الـ ID فوراً للطالب في رسالة واضحة
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
-    
-    // التحويل لصفحة المواد
     window.location.href = 'subjects.html';
 }
 
-// تسجيل الدخول مع التحقق من بصمة الجهاز
+// تسجيل الدخول مع التحقق من بصمة الجهاز الواحد
 function login() {
-    const idInput = document.getElementById('loginId');
-    const passInput = document.getElementById('loginPassword');
+    const idEl = document.getElementById('loginId');
+    const passEl = document.getElementById('loginPassword');
 
-    if (!idInput || !passInput) return;
+    if (!idEl || !passEl) return;
 
-    const id = idInput.value.trim();
-    const pass = passInput.value.trim();
+    const id = idEl.value.trim();
+    const pass = passEl.value.trim();
 
     if (!id || !pass) {
         alert("يرجى إدخال الرقم الجامعي وكلمة السر!");
@@ -114,7 +111,7 @@ function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام + كود الاستثناء 012288)
+// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام 300 متر + كود الاستثناء 012288)
 function submitFinalAttendance() {
     const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
     if (!isAttendanceOpen) {
@@ -122,15 +119,114 @@ function submitFinalAttendance() {
         return;
     }
 
-    const secretCodeInput = document.getElementById('secretCode');
+    const secretCodeEl = document.getElementById('secretCode');
     const statusMsg = document.getElementById('statusMsg');
-    
-    if (!secretCodeInput || !statusMsg) return;
 
-    const secretCode = secretCodeInput.value.trim();
+    if (!secretCodeEl || !statusMsg) return;
+
+    const secretCode = secretCodeEl.value.trim();
     const user = JSON.parse(localStorage.getItem('currentUser'));
     const subject = localStorage.getItem('selectedSubject');
 
     if (!user) {
         window.location.href = 'index.html';
+        return;
+    }
+
+    const correctCode = "1234";
+    const bypassCode = "012288"; // كود الاستثناء المعتمد لتسجيل الحضور من الخارج
+
+    if (secretCode !== correctCode && secretCode !== bypassCode) {
+        statusMsg.style.color = "red";
+        statusMsg.textContent = "الكود السري للمحاضرة غير صحيح!";
+        return;
+    }
+
+    // دالة تنفيذ الحضور وحفظه في السجلات وفي ملف الطالب
+    function executeRegistration(lat, lon, isOutlier) {
+        const time = new Date().toLocaleString('ar-EG');
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+        const record = {
+            id: user.id,
+            name: user.name,
+            phone: user.phone,
+            grade: user.grade,
+            subject: subject,
+            time: time,
+            locationLink: mapsUrl,
+            isOutlier: isOutlier
+        };
+
+        let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
         
+        const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject === subject);
+        if (alreadyRegistered) {
+            statusMsg.style.color = "orange";
+            statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المادة مسبقاً!";
+            return;
+        }
+
+        allAttendance.push(record);
+        localStorage.setItem('allAttendanceRecords', JSON.stringify(allAttendance));
+
+        let freshUser = JSON.parse(localStorage.getItem(user.id));
+        if (freshUser) {
+            freshUser.totalAttendance = (freshUser.totalAttendance || 0) + 1;
+            if (isOutlier) {
+                freshUser.totalViolations = (freshUser.totalViolations || 0) + 1;
+            }
+            localStorage.setItem(user.id, JSON.stringify(freshUser));
+            localStorage.setItem('currentUser', JSON.stringify(freshUser));
+        }
+
+        statusMsg.style.color = "green";
+        statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
+    }
+
+    // لو تم إدخال كود الاستثناء (012288)، يتم التسجيل فوراً
+    if (secretCode === bypassCode) {
+        statusMsg.style.color = "purple";
+        statusMsg.textContent = "🚀 تم تفعيل وضع الاستثناء، جاري التسجيل بنجاح...";
+        setTimeout(() => {
+            executeRegistration(30.0565, 31.3175, false);
+        }, 800);
+        return;
+    }
+
+    // التسجيل الطبيعي بالـ GPS مع إحداثيات كلية الإعلام (مدينة نصر - نطاق 300 متر)
+    statusMsg.style.color = "blue";
+    statusMsg.textContent = "جاري التقاط الموقع الجغرافي (GPS)... يرجى السماح للمتصفح.";
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                const campusLat = 30.0565; // إحداثيات كلية الإعلام بجامعة الأزهر
+                const campusLon = 31.3175;
+                const allowedRadius = 300; // 300 متر نطاق السماح
+
+                const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
+                const isOutlier = distance > allowedRadius;
+
+                if (isOutlier) {
+                    statusMsg.style.color = "red";
+                    statusMsg.textContent = "❌ أنت خارج النطاق المسموح!";
+                    return;
+                }
+
+                executeRegistration(lat, lon, false);
+            },
+            () => {
+                statusMsg.style.color = "red";
+                statusMsg.textContent = "❌ فشل تحديد الموقع. تأكد من تفعيل إذن الـ GPS في المتصفح.";
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    } else {
+        statusMsg.style.color = "red";
+        statusMsg.textContent = "متصفحك لا يدعم خدمة تحديد الموقع.";
+    }
+}
