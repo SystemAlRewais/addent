@@ -164,7 +164,7 @@
                                 <th>كلمة السر</th>
                                 <th>إجمالي الحضور</th>
                                 <th>المخالفات</th>
-                                <th>إجراءات الإدارة</th>
+                                <th>إجراء</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody">
@@ -179,24 +179,15 @@
 
     <script src="script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if(sessionStorage.getItem('isAdminLoggedIn') === 'true') {
-                const loginBox = document.getElementById('adminLoginBox');
-                const dashboard = document.getElementById('adminDashboard');
-                if(loginBox) loginBox.style.display = 'none';
-                if(dashboard) dashboard.style.display = 'block';
-                loadAdminDashboard();
-            }
-        });
+        if(sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            document.getElementById('adminLoginBox').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            loadAdminDashboard();
+        }
 
         function loginAdmin() {
-            const idInput = document.getElementById('adminId');
-            const passInput = document.getElementById('adminPass');
-            
-            if(!idInput || !passInput) return;
-
-            const id = idInput.value.trim();
-            const pass = passInput.value.trim();
+            const id = document.getElementById('adminId').value.trim();
+            const pass = document.getElementById('adminPass').value.trim();
 
             if (id === 'admin' && pass === '44554455') {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
@@ -214,44 +205,41 @@
         }
 
         function loadAdminDashboard() {
+            // حالة الحضور
             const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
             const statusText = document.getElementById('sessionStatusText');
             const toggleBtn = document.getElementById('toggleSessionBtn');
 
-            if (statusText && toggleBtn) {
-                if (isOpen) {
-                    statusText.textContent = "🟢 التسجيل مفتوح للطلاب الآن";
-                    statusText.style.color = "green";
-                    toggleBtn.textContent = "إغلاق باب التسجيل";
-                    toggleBtn.style.backgroundColor = "#dc3545";
-                } else {
-                    statusText.textContent = "🔴 التسجيل مغلق حالياً";
-                    statusText.style.color = "red";
-                    toggleBtn.textContent = "فتح باب التسجيل";
-                    toggleBtn.style.backgroundColor = "#28a745";
-                }
+            if (isOpen) {
+                statusText.textContent = "🟢 التسجيل مفتوح للطلاب الآن";
+                statusText.style.color = "green";
+                toggleBtn.textContent = "إغلاق باب التسجيل";
+                toggleBtn.style.backgroundColor = "#dc3545";
+            } else {
+                statusText.textContent = "🔴 التسجيل مغلق حالياً";
+                statusText.style.color = "red";
+                toggleBtn.textContent = "فتح باب التسجيل";
+                toggleBtn.style.backgroundColor = "#28a745";
             }
 
-            const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false';
+            // حالة إنشاء الحسابات
+            const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false'; // الافتراضي مفتوح
             const regStatusText = document.getElementById('regStatusText');
             const toggleRegBtn = document.getElementById('toggleRegBtn');
 
-            if (regStatusText && toggleRegBtn) {
-                if (isRegOpen) {
-                    regStatusText.textContent = "🟢 إنشاء الحسابات متاح للطلاب الآن";
-                    regStatusText.style.color = "green";
-                    toggleRegBtn.textContent = "قفل إنشاء الحسابات";
-                    toggleRegBtn.style.backgroundColor = "#dc3545";
-                } else {
-                    regStatusText.textContent = "🔴 إنشاء الحسابات مقفل من الإدارة";
-                    regStatusText.style.color = "red";
-                    toggleRegBtn.textContent = "فتح إنشاء الحسابات";
-                    toggleRegBtn.style.backgroundColor = "#28a745";
-                }
+            if (isRegOpen) {
+                regStatusText.textContent = "🟢 إنشاء الحسابات متاح للطلاب الآن";
+                regStatusText.style.color = "green";
+                toggleRegBtn.textContent = "قفل إنشاء الحسابات";
+                toggleRegBtn.style.backgroundColor = "#dc3545";
+            } else {
+                regStatusText.textContent = "🔴 إنشاء الحسابات مقفل من الإدارة";
+                regStatusText.style.color = "red";
+                toggleRegBtn.textContent = "فتح إنشاء الحسابات";
+                toggleRegBtn.style.backgroundColor = "#28a745";
             }
 
-            const titleInput = document.getElementById('lectureTitleInput');
-            if(titleInput) titleInput.value = localStorage.getItem('currentLectureTitle') || "المحاضرة الأولى";
+            document.getElementById('lectureTitleInput').value = localStorage.getItem('currentLectureTitle') || "المحاضرة الأولى";
 
             renderAdminReport();
             renderStudentsDatabase();
@@ -269,18 +257,12 @@
             loadAdminDashboard();
         }
 
+        // إنشاء حساب يدوي لطالب من لوحة التحكم
         function createManualStudentAccount() {
-            const nameEl = document.getElementById('manualName');
-            const phoneEl = document.getElementById('manualPhone');
-            const gradeEl = document.getElementById('manualGrade');
-            const passEl = document.getElementById('manualPassword');
-
-            if (!nameEl || !phoneEl || !passEl) return;
-
-            const name = nameEl.value.trim();
-            const phone = phoneEl.value.trim();
-            const grade = gradeEl.value;
-            const password = passEl.value.trim();
+            const name = document.getElementById('manualName').value.trim();
+            const phone = document.getElementById('manualPhone').value.trim();
+            const grade = document.getElementById('manualGrade').value;
+            const password = document.getElementById('manualPassword').value.trim();
 
             if (!name || !phone || !password) {
                 alert("يرجى إكمال جميع بيانات الطالب اليدوية!");
@@ -294,7 +276,6 @@
                 phone: phone, 
                 grade: grade, 
                 password: password,
-                isAdmin: false,
                 totalAttendance: 0, 
                 totalViolations: 0  
             };
@@ -302,28 +283,23 @@
             localStorage.setItem(newId, JSON.stringify(userData));
             alert(`✅ تم إنشاء حساب الطالب بنجاح!\n\n🆔 الرقم الجامعي (ID): ${newId}\nكلمة السر: ${password}`);
             
-            nameEl.value = '';
-            phoneEl.value = '';
-            passEl.value = '';
+            // تفريغ الحقول
+            document.getElementById('manualName').value = '';
+            document.getElementById('manualPhone').value = '';
+            document.getElementById('manualPassword').value = '';
             
             renderStudentsDatabase();
         }
 
         function saveLectureTitle() {
-            const titleInput = document.getElementById('lectureTitleInput');
-            if(!titleInput) return;
-            const title = titleInput.value.trim();
+            const title = document.getElementById('lectureTitleInput').value.trim();
             localStorage.setItem('currentLectureTitle', title);
             alert("تم حفظ عنوان المحاضرة!");
         }
 
         function addNewSubject() {
-            const subInput = document.getElementById('newSubjectInput');
-            const gradeInput = document.getElementById('newSubjectGrade');
-            if(!subInput || !gradeInput) return;
-
-            const subName = subInput.value.trim();
-            const grade = gradeInput.value;
+            const subName = document.getElementById('newSubjectInput').value.trim();
+            const grade = document.getElementById('newSubjectGrade').value;
 
             if(!subName) {
                 alert("يرجى كتابة اسم المادة والدكتور!");
@@ -335,14 +311,12 @@
             localStorage.setItem('customSubjects', JSON.stringify(customSubjects));
 
             alert(`تمت إضافة مادة "${subName}" بنجاح!`);
-            subInput.value = '';
+            document.getElementById('newSubjectInput').value = '';
         }
 
         function renderAdminReport() {
             const records = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
             const container = document.getElementById('adminReportContainer');
-
-            if (!container) return;
 
             if (records.length === 0) {
                 container.innerHTML = "<p style='text-align:center;'>لا يوجد حضور مسجل في هذه المحاضرة بعد.</p>";
@@ -366,49 +340,28 @@
 
         function renderStudentsDatabase() {
             const tbody = document.getElementById('studentsTableBody');
-            if (!tbody) return;
             tbody.innerHTML = '';
 
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith('AZ')) {
-                    try {
-                        const student = JSON.parse(localStorage.getItem(key));
-                        if(student && student.id) {
-                            const totalAttended = student.totalAttendance || 0;
-                            const totalViolations = student.totalViolations || 0;
-                            const isAdmin = student.isAdmin ? true : false;
+                if (key.startsWith('AZ')) {
+                    const student = JSON.parse(localStorage.getItem(key));
+                    
+                    const totalAttended = student.totalAttendance || 0;
+                    const totalViolations = student.totalViolations || 0;
 
-                            const row = `<tr>
-                                <td><strong>${student.id}</strong></td>
-                                <td>${student.name} ${isAdmin ? '👑 (أدمن)' : ''}</td>
-                                <td>${student.phone}</td>
-                                <td>${student.grade}</td>
-                                <td><code>${student.password}</code></td>
-                                <td><span class="badge-success">${totalAttended} محاضرة</span></td>
-                                <td>${totalViolations > 0 ? `<span class="badge-danger">${totalViolations} مخالفة</span>` : 'لا يوجد'}</td>
-                                <td>
-                                    <button type="button" onclick="toggleAdminRole('${student.id}')" style="background-color: ${isAdmin ? '#ffc107' : '#17a2b8'}; color: #000; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer; margin-bottom: 2px;">
-                                        ${isAdmin ? 'إلغاء الأدمن 👤' : 'ترقية لأدمن 👑'}
-                                    </button>
-                                    <button class="btn-delete" onclick="deleteStudent('${student.id}')">حذف 🗑️</button>
-                                </td>
-                            </tr>`;
-                            tbody.innerHTML += row;
-                        }
-                    } catch(e) {}
+                    const row = `<tr>
+                        <td><strong>${student.id}</strong></td>
+                        <td>${student.name}</td>
+                        <td>${student.phone}</td>
+                        <td>${student.grade}</td>
+                        <td><code>${student.password}</code></td>
+                        <td><span class="badge-success">${totalAttended} محاضرة</span></td>
+                        <td>${totalViolations > 0 ? `<span class="badge-danger">${totalViolations} مخالفة</span>` : 'لا يوجد'}</td>
+                        <td><button class="btn-delete" onclick="deleteStudent('${student.id}')">حذف 🗑️</button></td>
+                    </tr>`;
+                    tbody.innerHTML += row;
                 }
-            }
-        }
-
-        function toggleAdminRole(studentId) {
-            const studentData = localStorage.getItem(studentId);
-            if (studentData) {
-                let student = JSON.parse(studentData);
-                student.isAdmin = !student.isAdmin;
-                localStorage.setItem(studentId, JSON.stringify(student));
-                alert(student.isAdmin ? `👑 تم إعطاء صلاحية الأدمن للحساب (${student.name}) - يمكنه الآن الدخول من أي جهاز بدون قيود!` : `👤 تم إزالة صلاحية الأدمن من الحساب.`);
-                renderStudentsDatabase();
             }
         }
 
@@ -424,7 +377,7 @@
                 let keysToRemove = [];
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.startsWith('AZ')) {
+                    if (key.startsWith('AZ')) {
                         keysToRemove.push(key);
                     }
                 }
@@ -435,9 +388,7 @@
         }
 
         function filterStudents() {
-            const inputEl = document.getElementById('searchStudentInput');
-            if (!inputEl) return;
-            const input = inputEl.value.toLowerCase();
+            const input = document.getElementById('searchStudentInput').value.toLowerCase();
             const rows = document.querySelectorAll('#studentsTableBody tr');
 
             rows.forEach(row => {
