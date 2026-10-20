@@ -57,7 +57,7 @@ function createAccount() {
         grade: grade, 
         password: password,
         boundDeviceId: currentDeviceId,
-        isAdmin: false, // افتراضياً طالب عادي
+        isAdmin: false,
         totalAttendance: 0, 
         totalViolations: 0  
     };
@@ -105,12 +105,10 @@ function login() {
         user.boundDeviceId = currentDeviceId;
         localStorage.setItem(user.id, JSON.stringify(user));
     } else if (user.boundDeviceId !== currentDeviceId) {
-        // لو الحساب أدمن يفتح من أي جهاز بدون أي أسئلة
         if (isUserAdmin) {
             user.boundDeviceId = currentDeviceId;
             localStorage.setItem(user.id, JSON.stringify(user));
         } else {
-            // للطالب العادي يرفض إلا بكلمة السر Emoo
             const bypass = prompt("⚠️ هذا الحساب مرتبط بجهاز آخر.\n\nإذا كنت الإدارة، أدخل كلمة السر لفتح الحساب:");
             if (bypass === "Emoo") {
                 user.boundDeviceId = currentDeviceId;
