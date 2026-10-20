@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الشاملة - كلية الإعلام</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            text-align: right;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-delete:hover {
+            background-color: #bd2130;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <h2>لوحة التحكم الشاملة للإدارة</h2>
+
+        <!-- تسجيل دخول الإدارة -->
+        <div id="adminLoginBox">
+            <div class="input-group">
+                <label>معرف الإدارة (ID):</label>
+                <input type="text" id="adminId" placeholder="أدخل معرف الإدارة الخاص بك">
+            </div>
+            <div class="input-group">
+                <label>كلمة السر:</label>
+                <input type="password" id="adminPass" placeholder="أدخل كلمة السر">
+            </div>
+            <button type="button" onclick="loginAdmin()">دخول لوحة التحكم</button>
+        </div>
+
+        <!-- لوحة التحكم الشاملة -->
+        <div id="adminDashboard" style="display: none;">
+            
+            <!-- 1. التحكم في وقت المحاضرة -->
+            <div class="admin-section">
+                <h3>⏱️ إعدادات المحاضرة والتسجيل</h3>
+                <p id="sessionStatusText" style="font-size:15px; font-weight:bold;"></p>
+                <button type="button" id="toggleSessionBtn" onclick="toggleAttendanceSession()" style="width: auto; padding: 8px 15px;"></button>
+                
+                <div class="input-group" style="margin-top: 15px;">
+                    <label>عنوان المحاضرة الحالية:</label>
+                    <input type="text" id="lectureTitleInput" placeholder="مثال: المحاضرة الأولى - نشأة الاتصال">
+                    <button type="button" onclick="saveLectureTitle()" style="background-color:#17a2b8; margin-top:5px; padding:8px;">حفظ العنوان</button>
+                </div>
+            </div>
+
+            <!-- 2. إدارة المواد والدكاترة -->
+            <div class="admin-section">
+                <h3>📚 إضافة وإدارة المواد الدراسية</h3>
+                <div class="input-group">
+                    <label>اسم المادة والدكتور:</label>
+                    <input type="text" id="newSubjectInput" placeholder="مثال: صحافة إلكترونية - د. خالد">
+                </div>
+                <div class="input-group">
+                    <label>تخصيص للفرقة:</label>
+                    <select id="newSubjectGrade">
+                        <option value="1">الفرقة الأولى</option>
+                        <option value="2">الفرقة الثانية</option>
+                        <option value="3">الفرقة الثالثة</option>
+                        <option value="4">الفرقة الرابعة</option>
+                    </select>
+                </div>
+                <button type="button" onclick="addNewSubject()" style="background-color: #28a745; padding: 8px;">إضافة المادة للمنصة</button>
+            </div>
+
+            <!-- 3. سجل الحضور الجاري للمحاضرة -->
+            <div class="admin-section">
+                <h3>📋 كشف الحضور الجاري للمحاضرة</h3>
+                <button type="button" onclick="exportToExcel()" style="background-color: #28a745; margin-bottom: 8px;">📥 تصدير الكشف الحالي Excel (CSV)</button>
+                <button type="button" onclick="clearCurrentAttendance()" style="background-color: #dc3545; margin-bottom: 12px;">🗑️ بدء محاضرة جديدة (مسح الكشف الحالي)</button>
+                <div id="adminReportContainer" style="max-height:200px; overflow-y:auto;"></div>
+            </div>
+
+            <!-- 4. قاعدة بيانات الطلاب والإحصائيات الثابتة -->
+            <div class="admin-section">
+                <h3>👥 سجل جميع الطلاب وإجمالي الحضور</h3>
+                <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="searchStudentInput" onkeyup="filterStudents()" placeholder="🔍 ابحث باسم الطالب أو الـ ID..." style="flex: 1; margin: 0;">
+                    <button type="button" onclick="deleteAllStudents()" style="background-color: #dc3545; width: auto; margin: 0; padding: 8px 12px; font-size: 13px;">🗑️ مسح كل الطلاب</button>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>الـ ID</th>
+                                <th>اسم الطالب</th>
+                                <th>الهاتف</th>
+                                <th>الفرقة</th>
+                                <th>كلمة السر</th>
+                                <th>إجمالي الحضور</th>
+                                <th>المخالفات</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button type="button" onclick="logoutAdmin()" style="background-color: #6c757d; margin-top: 15px;">تسجيل الخروج من الإدارة</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if(sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            document.getElementById('adminLoginBox').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            loadAdminDashboard();
+        }
+
+        function loginAdmin() {
+            const id = document.getElementById('adminId').value.trim();
+            const pass = document.getElementById('adminPass').value.trim();
+
+            if (id === 'admin' && pass === '4455') {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                document.getElementById('adminLoginBox').style.display = 'none';
+                document.getElementById('adminDashboard').style.display = 'block';
+                loadAdminDashboard();
+            } else {
+                alert('بيانات دخول الإدارة غير صحيحة!');
+            }
+        }
+
+        function logoutAdmin() {
+            sessionStorage.removeItem('isAdminLoggedIn');
+            window.location.reload();
+        }
+
+        function loadAdminDashboard() {
+            const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
+            const statusText = document.getElementById('sessionStatusText');
+            const toggleBtn = document.getElementById('toggleSessionBtn');
+
+            if (isOpen) {
+                statusText.textContent = "🟢 التسجيل مفتوح للطلاب الآن";
+                statusText.style.color = "green";
+                toggleBtn.textContent = "إغلاق باب التسجيل";
+                toggleBtn.style.backgroundColor = "#dc3545";
+            } else {
+                statusText.textContent = "🔴 التسجيل مغلق حالياً";
+                statusText.style.color = "red";
+                toggleBtn.textContent = "فتح باب التسجيل";
+                toggleBtn.style.backgroundColor = "#28a745";
+            }
+
+            document.getElementById('lectureTitleInput').value = localStorage.getItem('currentLectureTitle') || "المحاضرة الأولى";
+
+            renderAdminReport();
+            renderStudentsDatabase();
+        }
+
+        function toggleAttendanceSession() {
+            const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
+            localStorage.setItem('isAttendanceOpen', !isOpen);
+            loadAdminDashboard();
+        }
+
+        function saveLectureTitle() {
+            const title = document.getElementById('lectureTitleInput').value.trim();
+            localStorage.setItem('currentLectureTitle', title);
+            alert("تم حفظ عنوان المحاضرة!");
+        }
+
+        function addNewSubject() {
+            const subName = document.getElementById('newSubjectInput').value.trim();
+            const grade = document.getElementById('newSubjectGrade').value;
+
+            if(!subName) {
+                alert("يرجى كتابة اسم المادة والدكتور!");
+                return;
+            }
+
+            let customSubjects = JSON.parse(localStorage.getItem('customSubjects')) || [];
+            customSubjects.push({ grade: grade, title: subName });
+            localStorage.setItem('customSubjects', JSON.stringify(customSubjects));
+
+            alert(`تمت إضافة مادة "${subName}" بنجاح!`);
+            document.getElementById('newSubjectInput').value = '';
+        }
+
+        function renderAdminReport() {
+            const records = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
+            const container = document.getElementById('adminReportContainer');
+
+            if (records.length === 0) {
+                container.innerHTML = "<p style='text-align:center;'>لا يوجد حضور مسجل في هذه المحاضرة بعد.</p>";
+                return;
+            }
+
+            let html = "<ol style='padding-right:20px;'>";
+            records.forEach(r => {
+                let statusTag = r.isOutlier ? 
+                    `<span class="badge-danger">⚠️ موقع مشبوه</span>` : 
+                    `<span class="badge-success">✅ داخل الجامعة</span>`;
+
+                html += `<li style="margin-bottom: 8px;">
+                    <strong>${r.name}</strong> (${r.id}) - ${r.time} - ${statusTag} 
+                    | <a href="${r.locationLink}" target="_blank">الموقع</a>
+                </li>`;
+            });
+            html += "</ol>";
+            container.innerHTML = html;
+        }
+
+        function renderStudentsDatabase() {
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = '';
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('AZ')) {
+                    const student = JSON.parse(localStorage.getItem(key));
+                    
+                    const totalAttended = student.totalAttendance || 0;
+                    const totalViolations = student.totalViolations || 0;
+
+                    const row = `<tr>
+                        <td><strong>${student.id}</strong></td>
+                        <td>${student.name}</td>
+                        <td>${student.phone}</td>
+                        <td>${student.grade}</td>
+                        <td><code>${student.password}</code></td>
+                        <td><span class="badge-success">${totalAttended} محاضرة</span></td>
+                        <td>${totalViolations > 0 ? `<span class="badge-danger">${totalViolations} مخالفة</span>` : 'لا يوجد'}</td>
+                        <td><button class="btn-delete" onclick="deleteStudent('${student.id}')">حذف 🗑️</button></td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                }
+            }
+        }
+
+        function deleteStudent(studentId) {
+            if (confirm(`هل أنت تأكد من حذف الطالب صاحب الرقم ${studentId}؟`)) {
+                localStorage.removeItem(studentId);
+                renderStudentsDatabase();
+            }
+        }
+
+        function deleteAllStudents() {
+            if (confirm("⚠️ هل أنت تأكد من مسح جميع حسابات الطلاب من النظام؟")) {
+                let keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('AZ')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach(k => localStorage.removeItem(k));
+                renderStudentsDatabase();
+                alert("تم مسح جميع الطلاب بنجاح!");
+            }
+        }
+
+        function filterStudents() {
+            const input = document.getElementById('searchStudentInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#studentsTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? '' : 'none';
+            });
+        }
+
+        function clearCurrentAttendance() {
+            if (confirm("هل أنت تأكد من مسح كشف المحاضرة الحالية لبدء محاضرة جديدة؟ (لن يؤثر هذا على إجمالي حضور الطلاب الكلي)")) {
+                localStorage.removeItem('allAttendanceRecords');
+                loadAdminDashboard();
+                alert("تم مسح الكشف الحالي بنجاح وباقي إحصائيات حضور الطلاب محفوظة في ملفاتهم!");
+            }
+        }
+
+        function exportToExcel() {
+            const records = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
+            if (records.length === 0) {
+                alert("لا توجد بيانات حضور لتصديرها!");
+                return;
+            }
+
+            const title = localStorage.getItem('currentLectureTitle') || "كشف الحضور";
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "الرقم الجامعي (ID),اسم الطالب,رقم التليفون,الفرقة,المادة,تاريخ ووقت الحضور,حالة الموقع,رابط الخريطة\n";
+
+            records.forEach(r => {
+                const status = r.isOutlier ? "موقع مشبوه (خارج الجامعة)" : "داخل الجامعة";
+                csvContent += `"${r.id}","${r.name}","${r.phone}","${r.grade}","${r.subject}","${r.time}","${status}","${r.locationLink}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${title}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
