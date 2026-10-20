@@ -15,20 +15,10 @@ function getOrCreateDeviceId() {
 
 // إنشاء حساب جديد مع إظهار الـ ID فوراً للطالب
 function createAccount() {
-    const nameEl = document.getElementById('fullname');
-    const phoneEl = document.getElementById('phone');
-    const gradeEl = document.getElementById('grade');
-    const passwordEl = document.getElementById('password');
-
-    if (!nameEl || !phoneEl || !gradeEl || !passwordEl) {
-        alert("⚠️ خطأ في مطابقة عناصر الصفحة، تأكد من ملف الـ HTML!");
-        return;
-    }
-
-    const name = nameEl.value.trim();
-    const phone = phoneEl.value.trim();
-    const grade = gradeEl.value.trim();
-    const password = passwordEl.value.trim();
+    const name = document.getElementById('fullname').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const grade = document.getElementById('grade').value;
+    const password = document.getElementById('password').value.trim();
 
     if (!name || !phone || !grade || !password) {
         alert("من فضلك أكمل جميع البيانات!");
@@ -51,7 +41,7 @@ function createAccount() {
 
     localStorage.setItem(newId, JSON.stringify(userData));
 
-    // إظهار رسالة واضحة تحتوي على الـ ID فوراً
+    // إظهار الـ ID للطالب فوراً في تنبيه واضح
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
     
     localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -107,7 +97,7 @@ function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام ونطاق 300 متر)
+// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام ونطاق 300 متر + الكود الاستثنائي 9988)
 function submitFinalAttendance() {
     const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
     if (!isAttendanceOpen) {
@@ -115,28 +105,68 @@ function submitFinalAttendance() {
         return;
     }
 
-    const secretCodeEl = document.getElementById('secretCode');
+    const secretCode = document.getElementById('secretCode').value.trim();
     const statusMsg = document.getElementById('statusMsg');
-
-    if (!secretCodeEl || !statusMsg) {
-        alert("⚠️ خطأ في عناصر صفحة الحضور!");
-        return;
-    }
-
-    const secretCode = secretCodeEl.value.trim();
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    const subject = localStorage.getItem('selectedSubject') || "المادة الدراسية";
-
-    if (!user) {
-        window.location.href = 'index.html';
-        return;
-    }
+    const subject = localStorage.getItem('selectedSubject');
 
     const correctCode = "1234";
+    const bypassCode = "9988"; // 🔑 الكود الاستثنائي الجديد للتسجيل من أي مكان
 
-    if (secretCode !== correctCode) {
+    if (secretCode !== correctCode && secretCode !== bypassCode) {
         statusMsg.style.color = "red";
         statusMsg.textContent = "الكود السري للمحاضرة غير صحيح!";
+        return;
+    }
+
+    function executeRegistration(lat, lon, isOutlier) {
+        const time = new Date().toLocaleString('ar-EG');
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+        const record = {
+            id: user.id,
+            name: user.name,
+            phone: user.phone,
+            grade: user.grade,
+            subject: subject,
+            time: time,
+            locationLink: mapsUrl,
+            isOutlier: isOutlier
+        };
+
+        let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
+        
+        const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject === subject);
+        if (alreadyRegistered) {
+            statusMsg.style.color = "orange";
+            statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المحاضرة مسبقاً!";
+            return;
+        }
+
+        allAttendance.push(record);
+        localStorage.setItem('allAttendanceRecords', JSON.stringify(allAttendance));
+
+        let freshUser = JSON.parse(localStorage.getItem(user.id));
+        if (freshUser) {
+            freshUser.totalAttendance = (freshUser.totalAttendance || 0) + 1;
+            if (isOutlier) {
+                freshUser.totalViolations = (freshUser.totalViolations || 0) + 1;
+            }
+            localStorage.setItem(user.id, JSON.stringify(freshUser));
+            localStorage.setItem('currentUser', JSON.stringify(freshUser));
+        }
+
+        statusMsg.style.color = "green";
+        statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
+    }
+
+    // إذا كتبت الكود 9988، هيسجل لك حضور فوراً وكأنك في الكلية
+    if (secretCode === bypassCode) {
+        statusMsg.style.color = "purple";
+        statusMsg.textContent = "🚀 تم تفعيل وضع الاستثناء، جاري التسجيل بنجاح...";
+        setTimeout(() => {
+            executeRegistration(30.0565, 31.3175, false);
+        }, 1000);
         return;
     }
 
@@ -148,60 +178,21 @@ function submitFinalAttendance() {
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                const time = new Date().toLocaleString('ar-EG');
-                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
 
                 const campusLat = 30.0565; 
                 const campusLon = 31.3175;
-                const allowedRadius = 300; 
+                const allowedRadius = 300; // 300 متر
 
                 const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
                 const isOutlier = distance > allowedRadius;
 
-                const record = {
-                    id: user.id,
-                    name: user.name,
-                    phone: user.phone,
-                    grade: user.grade,
-                    subject: subject,
-                    time: time,
-                    locationLink: mapsUrl,
-                    isOutlier: isOutlier
-                };
-
-                let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
-                
-                const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject === subject);
-                if (alreadyRegistered) {
-                    statusMsg.style.color = "orange";
-                    statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المادة مسبقاً!";
-                    return;
-                }
-
-                allAttendance.push(record);
-                localStorage.setItem('allAttendanceRecords', JSON.stringify(allAttendance));
-
-                let freshUser = JSON.parse(localStorage.getItem(user.id));
-                if (freshUser) {
-                    freshUser.totalAttendance = (freshUser.totalAttendance || 0) + 1;
-                    if (isOutlier) {
-                        freshUser.totalViolations = (freshUser.totalViolations || 0) + 1;
-                    }
-                    localStorage.setItem(user.id, JSON.stringify(freshUser));
-                    localStorage.setItem('currentUser', JSON.stringify(freshUser));
-                }
-
-                statusMsg.style.color = "green";
-                statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}!`;
+                executeRegistration(lat, lon, isOutlier);
             },
             () => {
                 statusMsg.style.color = "red";
-                statusMsg.textContent = "فشل تحديد الموقع. يرجى تفعيل الـ GPS وإعطاء الصلاحية للمتصفح.";
+                statusMsg.textContent = "فشل تحديد الموقع. يرجى تفعيل الـ GPS.";
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
-    } else {
-        statusMsg.style.color = "red";
-        statusMsg.textContent = "متصفحك لا يدعم خاصية تحديد الموقع الجغرافي.";
     }
 }
