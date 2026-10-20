@@ -41,7 +41,6 @@ function createAccount() {
 
     localStorage.setItem(newId, JSON.stringify(userData));
 
-    // إظهار الـ ID للطالب فوراً في تنبيه واضح
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
     
     localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -97,7 +96,7 @@ function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام ونطاق 300 متر + الكود الاستثنائي 9988)
+// تسجيل الحضور الطبيعي بالـ GPS مع إذن الموقع + كود الاستثناء 9988
 function submitFinalAttendance() {
     const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
     if (!isAttendanceOpen) {
@@ -111,7 +110,7 @@ function submitFinalAttendance() {
     const subject = localStorage.getItem('selectedSubject');
 
     const correctCode = "1234";
-    const bypassCode = "9988"; // 🔑 الكود الاستثنائي الجديد للتسجيل من أي مكان
+    const bypassCode = "9988"; // كود الاستثناء للتسجيل من البيت
 
     if (secretCode !== correctCode && secretCode !== bypassCode) {
         statusMsg.style.color = "red";
@@ -119,6 +118,7 @@ function submitFinalAttendance() {
         return;
     }
 
+    // دالة لتنفيذ وتخزين عملية الحضور
     function executeRegistration(lat, lon, isOutlier) {
         const time = new Date().toLocaleString('ar-EG');
         const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
@@ -136,63 +136,4 @@ function submitFinalAttendance() {
 
         let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
         
-        const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject === subject);
-        if (alreadyRegistered) {
-            statusMsg.style.color = "orange";
-            statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المحاضرة مسبقاً!";
-            return;
-        }
-
-        allAttendance.push(record);
-        localStorage.setItem('allAttendanceRecords', JSON.stringify(allAttendance));
-
-        let freshUser = JSON.parse(localStorage.getItem(user.id));
-        if (freshUser) {
-            freshUser.totalAttendance = (freshUser.totalAttendance || 0) + 1;
-            if (isOutlier) {
-                freshUser.totalViolations = (freshUser.totalViolations || 0) + 1;
-            }
-            localStorage.setItem(user.id, JSON.stringify(freshUser));
-            localStorage.setItem('currentUser', JSON.stringify(freshUser));
-        }
-
-        statusMsg.style.color = "green";
-        statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
-    }
-
-    // إذا كتبت الكود 9988، هيسجل لك حضور فوراً وكأنك في الكلية
-    if (secretCode === bypassCode) {
-        statusMsg.style.color = "purple";
-        statusMsg.textContent = "🚀 تم تفعيل وضع الاستثناء، جاري التسجيل بنجاح...";
-        setTimeout(() => {
-            executeRegistration(30.0565, 31.3175, false);
-        }, 1000);
-        return;
-    }
-
-    statusMsg.style.color = "blue";
-    statusMsg.textContent = "جاري التقاط الموقع والتأكد من الـ GPS...";
-
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-
-                const campusLat = 30.0565; 
-                const campusLon = 31.3175;
-                const allowedRadius = 300; // 300 متر
-
-                const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
-                const isOutlier = distance > allowedRadius;
-
-                executeRegistration(lat, lon, isOutlier);
-            },
-            () => {
-                statusMsg.style.color = "red";
-                statusMsg.textContent = "فشل تحديد الموقع. يرجى تفعيل الـ GPS.";
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    }
-}
+        const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject ===
