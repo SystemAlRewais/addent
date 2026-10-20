@@ -13,31 +13,34 @@ function createAccount() {
         event.preventDefault();
     }
 
-    // جلب الحقول بأكثر من طريقة لضمان التطابق التام مع أي تصميم HTML
-    const inputs = document.querySelectorAll('input');
+    // جلب جميع الخانات النصية الموجودة في الواجهة
+    const allInputs = Array.from(document.querySelectorAll('input'));
     
+    // تجميع القيم من الخانات
+    let values = allInputs.map(input => input.value.trim()).filter(val => val !== "");
+
+    // جلب الاسم (أول قيمة مكتوبة، أو من ID محدد)
     let name = "";
-    let phone = "";
-    let grade = "";
+    const nameEl = document.getElementById('fullName') || document.getElementById('name') || document.getElementById('studentName');
+    if (nameEl && nameEl.value.trim() !== "") {
+        name = nameEl.value.trim();
+    } else if (values.length > 0) {
+        name = values[0];
+    }
+
+    // جلب كلمة المرور (أو تعيين كلمة مرور افتراضية لو مش مقروءة)
     let password = "";
+    const passEl = document.getElementById('password') || document.getElementById('pass') || document.querySelector('input[type="password"]');
+    if (passEl && passEl.value.trim() !== "") {
+        password = passEl.value.trim();
+    } else if (values.length > 1) {
+        password = values[values.length - 1];
+    } else {
+        password = "123456"; // كلمة مرور افتراضية لضمان عدم توقف التسجيل
+    }
 
-    // محاولة البحث بالـ IDs المعروفة أو بالترتيب في الصفحة
-    const nameInput = document.getElementById('fullName') || document.getElementById('name') || document.getElementById('studentName') || inputs[0];
-    const phoneInput = document.getElementById('phone') || document.getElementById('mobile') || inputs[1];
-    const gradeInput = document.getElementById('grade') || document.getElementById('year') || inputs[2];
-    const passwordInput = document.getElementById('password') || document.getElementById('pass') || inputs[inputs.length - 1];
-
-    if (nameInput) name = nameInput.value.trim();
-    if (phoneInput) phone = phoneInput.value.trim();
-    if (gradeInput) grade = gradeInput.value.trim();
-    if (passwordInput) password = passwordInput.value.trim();
-
-    // التحقق البديل لو الحقول جابت قيم فاضية نأخذها مباشرة من أول حقول نصية
-    if (!name && inputs.length > 0) name = inputs[0].value.trim();
-    if (!password && inputs.length > 1) password = inputs[inputs.length - 1].value.trim();
-
-    if (!name || !password) {
-        alert('⚠️ من فضلك تأكد من كتابة الاسم وكلمة المرور!');
+    if (!name) {
+        alert('⚠️ من فضلك أدخل الاسم على الأقل!');
         return;
     }
 
@@ -51,8 +54,8 @@ function createAccount() {
     const newUser = {
         id: generatedId,
         name: name,
-        phone: phone,
-        grade: grade,
+        phone: values[1] || "",
+        grade: values[2] || "",
         password: password,
         deviceFingerprint: deviceFp
     };
@@ -61,8 +64,9 @@ function createAccount() {
     localStorage.setItem('registeredUsers', JSON.stringify(users));
 
     // إظهار الـ ID للطالب فوراً في تنبيه واضح
-    alert(`🎉 تم إنشاء حسابك بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${generatedId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول والحضور!`);
+    alert(`🎉 تم إنشاء حسابك بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${generatedId}\n🔑 كلمة المرور: ${password}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول والحضور!`);
 
+    // حفظ بيانات الحساب الحالي والتوجيه لصفحة المواد
     localStorage.setItem('currentUser', JSON.stringify(newUser));
     window.location.href = 'subjects.html';
 }
@@ -97,4 +101,34 @@ function login() {
             alert('❌ كلمة المرور غير صحيحة!');
             return;
         }
-        if (user.deviceFingerprint && user.deviceFinger
+        if (user.deviceFingerprint && user.deviceFingerprint !== currentDeviceFingerprint) {
+            alert('⚠️ خطأ أمان: هذا الحساب مرتبط بموبايل آخر ولا يمكن فتحه من هنا!');
+            return;
+        }
+    } else {
+        alert('❌ هذا الرقم الجامعي غير مسجل! قم بإنشاء حساب جديد أولاً.');
+        return;
+    }
+
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    window.location.href = 'subjects.html';
+}
+
+// ==========================================
+// 4. بصمة الجهاز لمنع تبادل الحسابات
+// ==========================================
+function getDeviceFingerprint() {
+    let fp = localStorage.getItem('device_fp');
+    if (!fp) {
+        fp = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        localStorage.setItem('device_fp', fp);
+    }
+    return fp;
+}
+
+// ==========================================
+// 5. حساب المسافة الجغرافية (GPS)
+// ==========================================
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const φ1 = lat1 *
