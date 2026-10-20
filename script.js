@@ -1,4 +1,4 @@
-const sheetDbApiUrl = "https://sheetdb.io/api/v1/oeekw8q418ysi";
+const sheetDbApiUrl = "https://sheetdb.io/api/v1/a89ry8w0gkj0g";
 
 // توليد ID عشوائي لطالب
 function generateStudentID() {
