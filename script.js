@@ -13,8 +13,18 @@ function getOrCreateDeviceId() {
     return deviceId;
 }
 
-// إنشاء حساب جديد مع إظهار الـ ID فوراً وتهيئة العدادات بـ صفر
+// إنشاء حساب جديد مع التحقق من إغلاق الإدارة وطلب كلمة الاستثناء الخفية
 function createAccount() {
+    const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false';
+
+    if (!isRegOpen) {
+        const adminBypass = prompt("⚠️ عذراً، إنشاء الحسابات غير متاح حالياً.\n\nإذا كنت مسؤولاً، أدخل كلمة السر للمتابعة:");
+        if (adminBypass !== "Emoo") {
+            alert("❌ إنشاء الحسابات غير متاح حالياً!");
+            return;
+        }
+    }
+
     const nameEl = document.getElementById('fullname');
     const phoneEl = document.getElementById('phone');
     const gradeEl = document.getElementById('grade');
@@ -52,7 +62,6 @@ function createAccount() {
     localStorage.setItem(newId, JSON.stringify(userData));
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
-    // إظهار الـ ID فوراً للطالب في رسالة واضحة
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
     window.location.href = 'subjects.html';
 }
@@ -91,8 +100,15 @@ function login() {
         user.boundDeviceId = currentDeviceId;
         localStorage.setItem(user.id, JSON.stringify(user));
     } else if (user.boundDeviceId !== currentDeviceId) {
-        alert("⚠️ خطأ في الأمان: هذا الحساب مرتبط بجهاز آخر ولا يمكن فتحه من هنا!");
-        return;
+        const bypass = prompt("⚠️ هذا الحساب مرتبط بجهاز آخر.\n\nإذا كنت الإدارة، أدخل كلمة السر لفتح الحساب:");
+        if (bypass === "Emoo") {
+            user.boundDeviceId = currentDeviceId;
+            localStorage.setItem(user.id, JSON.stringify(user));
+            alert("🔓 تم تخطي قيد الجهاز بنجاح!");
+        } else {
+            alert("❌ خطأ في الأمان: هذا الحساب مرتبط بجهاز آخر ولا يمكن فتحه من هنا!");
+            return;
+        }
     }
 
     localStorage.setItem('currentUser', JSON.stringify(user));
