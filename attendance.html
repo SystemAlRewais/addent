@@ -12,7 +12,7 @@
         <p id="userInfo" style="color: #6c757d; font-weight: bold; margin-bottom: 5px;"></p>
         <p id="attendanceSubject" style="font-weight: bold; color: #007bff; margin-bottom: 15px;"></p>
         
-        <p id="lectureTitleDisplay" style="background:#e9ecef; padding:8px; border-radius:5px; font-weight:bold; font-size:14px;"></p>
+        <p id="lectureTitleDisplay" style="background:#e9ecef; padding:8px; border-radius:5px; font-weight:bold; font-size:14px;">جاري التحقق من عنوان المحاضرة...</p>
 
         <div id="attendanceForm">
             <div class="input-group">
@@ -45,15 +45,25 @@
             document.getElementById('attendanceSubject').textContent = `المادة: ${subject}`;
         }
 
-        const lectureTitle = localStorage.getItem('currentLectureTitle') || "المحاضرة الأولى";
-        document.getElementById('lectureTitleDisplay').textContent = `📌 ${lectureTitle}`;
+        // فحص حالة المحاضرة وعنوانها سحابياً فور فتح الصفحة
+        async function checkLiveAttendanceStatus() {
+            const settings = await fetchAppSettings();
+            if (settings) {
+                const title = settings.currentSubject || "المحاضرة الأولى";
+                document.getElementById('lectureTitleDisplay').textContent = `📌 ${title}`;
 
-        const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
-        if (!isAttendanceOpen) {
-            document.getElementById('attendanceForm').style.display = 'none';
-            document.getElementById('statusMsg').style.color = 'red';
-            document.getElementById('statusMsg').textContent = '🔒 باب تسجيل الحضور مغلق حالياً بواسطة الدكتور.';
+                if (settings.isAttendanceOpen !== 'true') {
+                    document.getElementById('attendanceForm').style.display = 'none';
+                    document.getElementById('statusMsg').style.color = 'red';
+                    document.getElementById('statusMsg').textContent = '🔒 باب تسجيل الحضور مغلق حالياً بواسطة الدكتور سحابياً.';
+                } else {
+                    document.getElementById('attendanceForm').style.display = 'block';
+                    document.getElementById('statusMsg').textContent = '';
+                }
+            }
         }
+
+        checkLiveAttendanceStatus();
 
         function goBack() {
             window.location.href = 'subjects.html';
