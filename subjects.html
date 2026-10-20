@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة كلية الإعلام - جامعة الأزهر</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>منصة المواد والمحاضرات</h2>
+        <p id="userInfo" style="color: #007bff; font-weight: bold; margin-bottom: 15px;"></p>
+
+        <div class="input-group">
+            <label>اختر الفرقة الدراسية:</label>
+            <select id="selectGrade" onchange="loadSubjects()">
+                <option value="">-- اختر الفرقة --</option>
+                <option value="1">الفرقة الأولى</option>
+                <option value="2">الفرقة الثانية</option>
+                <option value="3">الفرقة الثالثة</option>
+                <option value="4">الفرقة الرابعة</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>المادة والمحاضر:</label>
+            <select id="selectSubject">
+                <option value="">-- اختر الفرقة أولاً --</option>
+            </select>
+        </div>
+
+        <button type="button" onclick="goToAttendance()">متابعة لتسجيل الحضور بالـ GPS</button>
+        <button type="button" onclick="logout()" style="background-color: #dc3545; margin-top: 10px;">تسجيل الخروج</button>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if(!user) { 
+            window.location.href = 'index.html'; 
+        } else { 
+            document.getElementById('userInfo').textContent = `طالب: ${user.name} | الرقم الجامعي: ${user.id}`; 
+        }
+
+        function loadSubjects() {
+            const grade = document.getElementById('selectGrade').value;
+            const subjectSelect = document.getElementById('selectSubject');
+            subjectSelect.innerHTML = '';
+
+            if(!grade) {
+                subjectSelect.innerHTML = '<option value="">-- اختر الفرقة أولاً --</option>';
+                return;
+            }
+
+            if(grade === "1") {
+                subjectSelect.innerHTML += '<option value="نشأة وسائل الاتصال - د. مصطفى مندي">نشأة وسائل الاتصال - د. مصطفى مندي</option>';
+            }
+
+            const customSubjects = JSON.parse(localStorage.getItem('customSubjects')) || [];
+            customSubjects.filter(s => s.grade === grade).forEach(s => {
+                subjectSelect.innerHTML += `<option value="${s.title}">${s.title}</option>`;
+            });
+
+            if(subjectSelect.innerHTML === '') {
+                subjectSelect.innerHTML = '<option value="">-- لا توجد مواد متاحة حالياً --</option>';
+            }
+        }
+
+        function goToAttendance() {
+            const subject = document.getElementById('selectSubject').value;
+            if(!subject) {
+                alert('من فضلك اختر الفرقة والمادة أولاً!');
+                return;
+            }
+            localStorage.setItem('selectedSubject', subject);
+            window.location.href = 'attendance.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
