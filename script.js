@@ -13,14 +13,19 @@ function getOrCreateDeviceId() {
     return deviceId;
 }
 
-// إنشاء حساب جديد مع التحقق من إغلاق الإدارة وطلب كلمة الاستثناء الخفية
+// إنشاء حساب جديد مع قيد الجهاز الواحد (حساب واحد لكل جهاز إلا باستثناء الإدارة Emoo)
 function createAccount() {
+    // 1. التحقق من حالة قفل الإدارة العام لإنشاء الحسابات
     const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false';
+    const currentDeviceId = getOrCreateDeviceId();
+    const deviceOwnerKey = 'device_created_' + currentDeviceId;
+    const hasAccountOnDevice = localStorage.getItem(deviceOwnerKey);
 
-    if (!isRegOpen) {
-        const adminBypass = prompt("⚠️ عذراً، إنشاء الحسابات غير متاح حالياً.\n\nإذا كنت مسؤولاً، أدخل كلمة السر للمتابعة:");
+    // 2. التحقق مما إذا كان الجهاز قد أنشأ حساباً من قبل أو أن الإدارة مغلقة
+    if (!isRegOpen || hasAccountOnDevice) {
+        const adminBypass = prompt("⚠️ عذراً، لا يمكن إنشاء أكثر من حساب من هذا الجهاز (أو أن الإنشاء مغلق من الإدارة).\n\nإذا كنت مسؤولاً، أدخل كلمة السر للمتابعة:");
         if (adminBypass !== "Emoo") {
-            alert("❌ إنشاء الحسابات غير متاح حالياً من قبل الإدارة!");
+            alert("❌ غير متاح إنشاء حساب جديد من هذا الجهاز!");
             return;
         }
     }
@@ -46,7 +51,6 @@ function createAccount() {
     }
 
     const newId = generateStudentID();
-    const currentDeviceId = getOrCreateDeviceId();
 
     const userData = { 
         id: newId, 
@@ -61,6 +65,9 @@ function createAccount() {
 
     localStorage.setItem(newId, JSON.stringify(userData));
     localStorage.setItem('currentUser', JSON.stringify(userData));
+
+    // قفل هذا الجهاز بحيث لا يُسمح بإنشاء حساب عليه مرة أخرى إلا بكلمة Emoo
+    localStorage.setItem(deviceOwnerKey, newId);
 
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
     window.location.href = 'subjects.html';
@@ -177,3 +184,72 @@ function submitFinalAttendance() {
         let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
         
         const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject === subject);
+        if (alreadyRegistered) {
+            statusMsg.style.color = "orange";
+            statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المادة مسبقاً!";
+            return;
+        }
+
+        allAttendance.push(record);
+        localStorage.setItem('allAttendanceRecords', JSON.stringify(allAttendance));
+
+        let freshUser = JSON.parse(localStorage.getItem(user.id));
+        if (freshUser) {
+            freshUser.totalAttendance = (freshUser.totalAttendance || 0) + 1;
+            if (isOutlier) {
+                freshUser.totalViolations = (freshUser.totalViolations || 0) + 1;
+            }
+            localStorage.setItem(user.id, JSON.stringify(freshUser));
+            localStorage.setItem('currentUser', JSON.stringify(freshUser));
+        }
+
+        statusMsg.style.color = "green";
+        statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
+    }
+
+    // لو تم إدخال كود الاستثناء (012288)، يتم التسجيل فوراً
+    if (secretCode === bypassCode) {
+        statusMsg.style.color = "purple";
+        statusMsg.textContent = "🚀 تم تفعيل وضع الاستثناء، جاري التسجيل بنجاح...";
+        setTimeout(() => {
+            executeRegistration(30.0565, 31.3175, false);
+        }, 800);
+        return;
+    }
+
+    // التسجيل الطبيعي بالـ GPS مع إحداثيات كلية الإعلام (مدينة نصر - نطاق 300 متر)
+    statusMsg.style.color = "blue";
+    statusMsg.textContent = "جاري التقاط الموقع الجغرافي (GPS)... يرجى السماح للمتصفح.";
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                const campusLat = 30.0565; // إحداثيات كلية الإعلام بجامعة الأزهر
+                const campusLon = 31.3175;
+                const allowedRadius = 300; // 300 متر نطاق السماح
+
+                const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
+                const isOutlier = distance > allowedRadius;
+
+                if (isOutlier) {
+                    statusMsg.style.color = "red";
+                    statusMsg.textContent = "❌ أنت خارج النطاق المسموح!";
+                    return;
+                }
+
+                executeRegistration(lat, lon, false);
+            },
+            () => {
+                statusMsg.style.color = "red";
+                statusMsg.textContent = "❌ فشل تحديد الموقع. تأكد من تفعيل إذن الـ GPS في المتصفح.";
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    } else {
+        statusMsg.style.color = "red";
+        statusMsg.textContent = "متصفحك لا يدعم خدمة تحديد الموقع.";
+    }
+}
