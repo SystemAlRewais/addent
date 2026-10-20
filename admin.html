@@ -276,6 +276,7 @@
                 phone: phone, 
                 grade: grade, 
                 password: password,
+                isAdmin: false,
                 totalAttendance: 0, 
                 totalViolations: 0  
             };
@@ -344,24 +345,41 @@
 
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key.startsWith('AZ')) {
+                if (key && key.startsWith('AZ')) {
                     const student = JSON.parse(localStorage.getItem(key));
                     
                     const totalAttended = student.totalAttendance || 0;
                     const totalViolations = student.totalViolations || 0;
+                    const isAdmin = student.isAdmin ? true : false;
 
                     const row = `<tr>
                         <td><strong>${student.id}</strong></td>
-                        <td>${student.name}</td>
+                        <td>${student.name} ${isAdmin ? '👑 (أدمن)' : ''}</td>
                         <td>${student.phone}</td>
                         <td>${student.grade}</td>
                         <td><code>${student.password}</code></td>
                         <td><span class="badge-success">${totalAttended} محاضرة</span></td>
                         <td>${totalViolations > 0 ? `<span class="badge-danger">${totalViolations} مخالفة</span>` : 'لا يوجد'}</td>
-                        <td><button class="btn-delete" onclick="deleteStudent('${student.id}')">حذف 🗑️</button></td>
+                        <td>
+                            <button type="button" onclick="toggleAdminRole('${student.id}')" style="background-color: ${isAdmin ? '#ffc107' : '#17a2b8'}; color: #000; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer; margin-bottom: 2px;">
+                                ${isAdmin ? 'إلغاء الأدمن 👤' : 'ترقية لأدمن 👑'}
+                            </button>
+                            <button class="btn-delete" onclick="deleteStudent('${student.id}')">حذف 🗑️</button>
+                        </td>
                     </tr>`;
                     tbody.innerHTML += row;
                 }
+            }
+        }
+
+        function toggleAdminRole(studentId) {
+            const studentData = localStorage.getItem(studentId);
+            if (studentData) {
+                let student = JSON.parse(studentData);
+                student.isAdmin = !student.isAdmin;
+                localStorage.setItem(studentId, JSON.stringify(student));
+                alert(student.isAdmin ? `👑 تم إعطاء صلاحية الأدمن للحساب (${student.name}) - يمكنه الآن الدخول من أي جهاز بدون قيود!` : `👤 تم إزالة صلاحية الأدمن من الحساب.`);
+                renderStudentsDatabase();
             }
         }
 
@@ -377,7 +395,7 @@
                 let keysToRemove = [];
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key.startsWith('AZ')) {
+                    if (key && key.startsWith('AZ')) {
                         keysToRemove.push(key);
                     }
                 }
