@@ -204,56 +204,66 @@
             window.location.reload();
         }
 
-        function loadAdminDashboard() {
-            // حالة الحضور
-            const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
+        async function loadAdminDashboard() {
+            const settings = await fetchAppSettings();
+            
+            // حالة الحضور سحابياً
+            const isOpen = settings && settings.isAttendanceOpen === 'true';
             const statusText = document.getElementById('sessionStatusText');
             const toggleBtn = document.getElementById('toggleSessionBtn');
 
             if (isOpen) {
-                statusText.textContent = "🟢 التسجيل مفتوح للطلاب الآن";
+                statusText.textContent = "🟢 التسجيل مفتوح للطلاب الآن سحابياً";
                 statusText.style.color = "green";
                 toggleBtn.textContent = "إغلاق باب التسجيل";
                 toggleBtn.style.backgroundColor = "#dc3545";
             } else {
-                statusText.textContent = "🔴 التسجيل مغلق حالياً";
+                statusText.textContent = "🔴 التسجيل مغلق حالياً سحابياً";
                 statusText.style.color = "red";
                 toggleBtn.textContent = "فتح باب التسجيل";
                 toggleBtn.style.backgroundColor = "#28a745";
             }
 
-            // حالة إنشاء الحسابات
-            const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false'; // الافتراضي مفتوح
+            // حالة إنشاء الحسابات سحابياً
+            const isRegOpen = settings ? settings.isRegistrationOpen === 'true' : true;
             const regStatusText = document.getElementById('regStatusText');
             const toggleRegBtn = document.getElementById('toggleRegBtn');
 
             if (isRegOpen) {
-                regStatusText.textContent = "🟢 إنشاء الحسابات متاح للطلاب الآن";
+                regStatusText.textContent = "🟢 إنشاء الحسابات متاح للطلاب الآن سحابياً";
                 regStatusText.style.color = "green";
                 toggleRegBtn.textContent = "قفل إنشاء الحسابات";
                 toggleRegBtn.style.backgroundColor = "#dc3545";
             } else {
-                regStatusText.textContent = "🔴 إنشاء الحسابات مقفل من الإدارة";
+                regStatusText.textContent = "🔴 إنشاء الحسابات مقفل سحابياً من الإدارة";
                 regStatusText.style.color = "red";
                 toggleRegBtn.textContent = "فتح إنشاء الحسابات";
                 toggleRegBtn.style.backgroundColor = "#28a745";
             }
 
-            document.getElementById('lectureTitleInput').value = localStorage.getItem('currentLectureTitle') || "المحاضرة الأولى";
+            document.getElementById('lectureTitleInput').value = (settings && settings.currentSubject) ? settings.currentSubject : "المحاضرة الأولى";
 
             renderAdminReport();
             renderStudentsDatabase();
         }
 
-        function toggleAttendanceSession() {
-            const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
-            localStorage.setItem('isAttendanceOpen', !isOpen);
+        async function toggleAttendanceSession() {
+            const settings = await fetchAppSettings();
+            const isOpen = settings ? settings.isAttendanceOpen === 'true' : false;
+            const newState = isOpen ? 'false' : 'true';
+            
+            await updateAppSetting('isAttendanceOpen', newState);
+            alert(newState === 'true' ? "🟢 تم فتح باب التسجيل سحابياً لجميع الطلاب!" : "🔴 تم إغلاق باب التسجيل سحابياً!");
             loadAdminDashboard();
         }
 
-        function toggleRegistrationState() {
-            const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false';
-            localStorage.setItem('isRegistrationOpen', !isRegOpen);
+        async function toggleRegistrationState() {
+            const settings = await fetchAppSettings();
+            const isRegOpen = settings ? settings.isRegistrationOpen === 'true' : true;
+            const newState = isRegOpen ? 'false' : 'true';
+
+            await updateAppSetting('isRegistrationOpen', newState);
+            alert(newState === 'true' ? "🟢 تم فتح إنشاء الحسابات سحابياً!" : "🔴 تم قفل إنشاء الحسابات سحابياً!");
             loadAdminDashboard();
         }
 
@@ -282,9 +292,18 @@
             };
 
             localStorage.setItem(newId, JSON.stringify(userData));
+            
+            // رفع الطالب الجديد سحابياً أيضاً
+            fetch(sheetDbApiUrl + "?sheet=Students", {
+                method: "POST",
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: [{ id: newId, name: name, phone: phone, grade: grade, password: password }]
+                })
+            }).catch(err => console.error(err));
+
             alert(`✅ تم إنشاء حساب الطالب بنجاح!\n\n🆔 الرقم الجامعي (ID): ${newId}\nكلمة السر: ${password}`);
             
-            // تفريغ الحقول
             document.getElementById('manualName').value = '';
             document.getElementById('manualPhone').value = '';
             document.getElementById('manualPassword').value = '';
@@ -292,10 +311,11 @@
             renderStudentsDatabase();
         }
 
-        function saveLectureTitle() {
+        async function saveLectureTitle() {
             const title = document.getElementById('lectureTitleInput').value.trim();
-            localStorage.setItem('currentLectureTitle', title);
-            alert("تم حفظ عنوان المحاضرة!");
+            if(!title) return;
+            await updateAppSetting('currentSubject', title);
+            alert("✅ تم حفظ عنوان المحاضرة سحابياً وسماعه لدى جميع الطلاب!");
         }
 
         function addNewSubject() {
@@ -378,7 +398,7 @@
                 let student = JSON.parse(studentData);
                 student.isAdmin = !student.isAdmin;
                 localStorage.setItem(studentId, JSON.stringify(student));
-                alert(student.isAdmin ? `👑 تم إعطاء صلاحية الأدمن للحساب (${student.name}) - يمكنه الآن الدخول من أي جهاز بدون قيود!` : `👤 تم إزالة صلاحية الأدمن من الحساب.`);
+                alert(student.isAdmin ? `👑 تم إعطاء صلاحية الأدمن للحساب (${student.name})` : `👤 تم إزالة صلاحية الأدمن.`);
                 renderStudentsDatabase();
             }
         }
