@@ -75,11 +75,14 @@
         <!-- لوحة التحكم الشاملة -->
         <div id="adminDashboard" style="display: none;">
             
-            <!-- 1. التحكم في وقت المحاضرة -->
+            <!-- 1. التحكم في وقت المحاضرة وإنشاء الحسابات -->
             <div class="admin-section">
-                <h3>⏱️ إعدادات المحاضرة والتسجيل</h3>
+                <h3>⏱️ إعدادات المحاضرة وحسابات الطلاب</h3>
                 <p id="sessionStatusText" style="font-size:15px; font-weight:bold;"></p>
-                <button type="button" id="toggleSessionBtn" onclick="toggleAttendanceSession()" style="width: auto; padding: 8px 15px;"></button>
+                <button type="button" id="toggleSessionBtn" onclick="toggleAttendanceSession()" style="width: auto; padding: 8px 15px; margin-bottom: 10px;"></button>
+                <br>
+                <p id="regStatusText" style="font-size:15px; font-weight:bold; margin-top: 10px;"></p>
+                <button type="button" id="toggleRegBtn" onclick="toggleRegistrationState()" style="width: auto; padding: 8px 15px; background-color: #17a2b8;"></button>
                 
                 <div class="input-group" style="margin-top: 15px;">
                     <label>عنوان المحاضرة الحالية:</label>
@@ -88,7 +91,34 @@
                 </div>
             </div>
 
-            <!-- 2. إدارة المواد والدكاترة -->
+            <!-- 2. إنشاء حساب يدوي لطالب بواسطة الإدارة -->
+            <div class="admin-section">
+                <h3>✍️ إنشاء حساب يدوي لطالب</h3>
+                <div class="input-group">
+                    <label>اسم الطالب:</label>
+                    <input type="text" id="manualName" placeholder="أدخل اسم الطالب الكامل">
+                </div>
+                <div class="input-group">
+                    <label>رقم الهاتف:</label>
+                    <input type="text" id="manualPhone" placeholder="رقم الهاتف">
+                </div>
+                <div class="input-group">
+                    <label>الفرقة الدراسية:</label>
+                    <select id="manualGrade">
+                        <option value="1">الفرقة الأولى</option>
+                        <option value="2">الفرقة الثانية</option>
+                        <option value="3">الفرقة الثالثة</option>
+                        <option value="4">الفرقة الرابعة</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>كلمة السر الخاصة بالطالب:</label>
+                    <input type="text" id="manualPassword" placeholder="كلمة السر">
+                </div>
+                <button type="button" onclick="createManualStudentAccount()" style="background-color: #28a745; padding: 8px;">إضافة وتوليد حساب للطالب</button>
+            </div>
+
+            <!-- 3. إدارة المواد والدكاترة -->
             <div class="admin-section">
                 <h3>📚 إضافة وإدارة المواد الدراسية</h3>
                 <div class="input-group">
@@ -107,7 +137,7 @@
                 <button type="button" onclick="addNewSubject()" style="background-color: #28a745; padding: 8px;">إضافة المادة للمنصة</button>
             </div>
 
-            <!-- 3. سجل الحضور الجاري للمحاضرة -->
+            <!-- 4. سجل الحضور الجاري للمحاضرة -->
             <div class="admin-section">
                 <h3>📋 كشف الحضور الجاري للمحاضرة</h3>
                 <button type="button" onclick="exportToExcel()" style="background-color: #28a745; margin-bottom: 8px;">📥 تصدير الكشف الحالي Excel (CSV)</button>
@@ -115,7 +145,7 @@
                 <div id="adminReportContainer" style="max-height:200px; overflow-y:auto;"></div>
             </div>
 
-            <!-- 4. قاعدة بيانات الطلاب والإحصائيات الثابتة -->
+            <!-- 5. قاعدة بيانات الطلاب والإحصائيات الثابتة -->
             <div class="admin-section">
                 <h3>👥 سجل جميع الطلاب وإجمالي الحضور</h3>
                 <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
@@ -159,7 +189,6 @@
             const id = document.getElementById('adminId').value.trim();
             const pass = document.getElementById('adminPass').value.trim();
 
-            // تم تحديث باسورد الإدارة هنا ليكون 44554455 بالظبط
             if (id === 'admin' && pass === '44554455') {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 document.getElementById('adminLoginBox').style.display = 'none';
@@ -176,6 +205,7 @@
         }
 
         function loadAdminDashboard() {
+            // حالة الحضور
             const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
             const statusText = document.getElementById('sessionStatusText');
             const toggleBtn = document.getElementById('toggleSessionBtn');
@@ -192,6 +222,23 @@
                 toggleBtn.style.backgroundColor = "#28a745";
             }
 
+            // حالة إنشاء الحسابات
+            const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false'; // الافتراضي مفتوح
+            const regStatusText = document.getElementById('regStatusText');
+            const toggleRegBtn = document.getElementById('toggleRegBtn');
+
+            if (isRegOpen) {
+                regStatusText.textContent = "🟢 إنشاء الحسابات متاح للطلاب الآن";
+                regStatusText.style.color = "green";
+                toggleRegBtn.textContent = "قفل إنشاء الحسابات";
+                toggleRegBtn.style.backgroundColor = "#dc3545";
+            } else {
+                regStatusText.textContent = "🔴 إنشاء الحسابات مقفل من الإدارة";
+                regStatusText.style.color = "red";
+                toggleRegBtn.textContent = "فتح إنشاء الحسابات";
+                toggleRegBtn.style.backgroundColor = "#28a745";
+            }
+
             document.getElementById('lectureTitleInput').value = localStorage.getItem('currentLectureTitle') || "المحاضرة الأولى";
 
             renderAdminReport();
@@ -202,6 +249,46 @@
             const isOpen = localStorage.getItem('isAttendanceOpen') === 'true';
             localStorage.setItem('isAttendanceOpen', !isOpen);
             loadAdminDashboard();
+        }
+
+        function toggleRegistrationState() {
+            const isRegOpen = localStorage.getItem('isRegistrationOpen') !== 'false';
+            localStorage.setItem('isRegistrationOpen', !isRegOpen);
+            loadAdminDashboard();
+        }
+
+        // إنشاء حساب يدوي لطالب من لوحة التحكم
+        function createManualStudentAccount() {
+            const name = document.getElementById('manualName').value.trim();
+            const phone = document.getElementById('manualPhone').value.trim();
+            const grade = document.getElementById('manualGrade').value;
+            const password = document.getElementById('manualPassword').value.trim();
+
+            if (!name || !phone || !password) {
+                alert("يرجى إكمال جميع بيانات الطالب اليدوية!");
+                return;
+            }
+
+            const newId = 'AZ' + Math.floor(100000 + Math.random() * 900000);
+            const userData = { 
+                id: newId, 
+                name: name, 
+                phone: phone, 
+                grade: grade, 
+                password: password,
+                totalAttendance: 0, 
+                totalViolations: 0  
+            };
+
+            localStorage.setItem(newId, JSON.stringify(userData));
+            alert(`✅ تم إنشاء حساب الطالب بنجاح!\n\n🆔 الرقم الجامعي (ID): ${newId}\nكلمة السر: ${password}`);
+            
+            // تفريغ الحقول
+            document.getElementById('manualName').value = '';
+            document.getElementById('manualPhone').value = '';
+            document.getElementById('manualPassword').value = '';
+            
+            renderStudentsDatabase();
         }
 
         function saveLectureTitle() {
@@ -311,10 +398,10 @@
         }
 
         function clearCurrentAttendance() {
-            if (confirm("هل أنت تأكد من مسح كشف المحاضرة الحالية لبدء محاضرة جديدة؟ (لن يؤثر هذا على إجمالي حضور الطلاب الكلي)")) {
+            if (confirm("⚠️ هل أنت تأكد من مسح كشف المحاضرة الحالية لبدء محاضرة جديدة؟")) {
                 localStorage.removeItem('allAttendanceRecords');
                 loadAdminDashboard();
-                alert("تم مسح الكشف الحالي بنجاح وباقي إحصائيات حضور الطلاب محفوظة في ملفاتهم!");
+                alert("تم مسح الكشف الحالي بنجاح!");
             }
         }
 
