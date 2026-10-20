@@ -159,7 +159,8 @@
             const id = document.getElementById('adminId').value.trim();
             const pass = document.getElementById('adminPass').value.trim();
 
-            if (id === 'admin' && pass === '4455') {
+            // تم تحديث باسورد الإدارة هنا ليكون 44554455 بالظبط
+            if (id === 'admin' && pass === '44554455') {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 document.getElementById('adminLoginBox').style.display = 'none';
                 document.getElementById('adminDashboard').style.display = 'block';
