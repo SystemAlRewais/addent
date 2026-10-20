@@ -13,7 +13,7 @@ function getOrCreateDeviceId() {
     return deviceId;
 }
 
-// إنشاء حساب جديد مع إظهار الـ ID فوراً وتهيئة العدادات بـ صفر
+// إنشاء حساب جديد مع إظهار الـ ID فوراً للطالب
 function createAccount() {
     const nameEl = document.getElementById('fullname');
     const phoneEl = document.getElementById('phone');
@@ -52,7 +52,7 @@ function createAccount() {
     localStorage.setItem(newId, JSON.stringify(userData));
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
-    // إظهار الـ ID فوراً للطالب
+    // إظهار الـ ID فوراً في رسالة واضحة
     alert(`🎉 تم إنشاء الحساب بنجاح!\n\n🆔 رقمك الجامعي (ID) هو: ${newId}\n\n⚠️ احتفظ بهذا الرقم جيداً لتسجيل الدخول!`);
     window.location.href = 'subjects.html';
 }
@@ -106,7 +106,7 @@ function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// تسجيل الحضور بالـ GPS مع إحداثيات كلية الإعلام (مدينة نصر - 300م) وكود الاستثناء 9988
+// تسجيل الحضور بالـ GPS (مع إحداثيات كلية الإعلام 300 متر + كود الاستثناء 012288)
 function submitFinalAttendance() {
     const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
     if (!isAttendanceOpen) {
@@ -125,7 +125,7 @@ function submitFinalAttendance() {
     }
 
     const correctCode = "1234";
-    const bypassCode = "9988"; // كود الاستثناء للتسجيل من الخارج
+    const bypassCode = "012288"; // كود الاستثناء الجديد لتجاوز اللوكيشن
 
     if (secretCode !== correctCode && secretCode !== bypassCode) {
         statusMsg.style.color = "red";
@@ -133,7 +133,7 @@ function submitFinalAttendance() {
         return;
     }
 
-    // دالة لتنفيذ عملية تسجيل الحضور وتحديث ملف الطالب
+    // دالة تنفيذ الحضور وحفظه
     function executeRegistration(lat, lon, isOutlier) {
         const time = new Date().toLocaleString('ar-EG');
         const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
@@ -154,7 +154,7 @@ function submitFinalAttendance() {
         const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject === subject);
         if (alreadyRegistered) {
             statusMsg.style.color = "orange";
-            statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المحاضرة مسبقاً!";
+            statusMsg.textContent = "لقد قمت بتسجيل الحضور لهذه المادة مسبقاً!";
             return;
         }
 
@@ -175,7 +175,7 @@ function submitFinalAttendance() {
         statusMsg.textContent = `تم تسجيل حضورك بنجاح يا ${user.name}! ${secretCode === bypassCode ? '(وضع الاستثناء 🚀)' : ''}`;
     }
 
-    // إذا تم إدخال كود الاستثناء (9988)
+    // لو كتبت كود الاستثناء (012288)، هيسجل فوري من أي مكان
     if (secretCode === bypassCode) {
         statusMsg.style.color = "purple";
         statusMsg.textContent = "🚀 تم تفعيل وضع الاستثناء، جاري التسجيل بنجاح...";
@@ -185,8 +185,9 @@ function submitFinalAttendance() {
         return;
     }
 
+    // التسجيل الطبيعي بالـ GPS مع إحداثيات كلية الإعلام (مدينة نصر - 300 متر)
     statusMsg.style.color = "blue";
-    statusMsg.textContent = "جاري التقاط الموقع والتأكد من الـ GPS...";
+    statusMsg.textContent = "جاري التقاط الموقع الجغرافي (GPS)... يرجى السماح للمتصفح.";
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -194,10 +195,9 @@ function submitFinalAttendance() {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
 
-                // إحداثيات كلية الإعلام بجامعة الأزهر (مدينة نصر)
                 const campusLat = 30.0565; 
                 const campusLon = 31.3175;
-                const allowedRadius = 300; // 300 متر نطاق سماح
+                const allowedRadius = 300; 
 
                 const distance = calculateDistanceInMeters(lat, lon, campusLat, campusLon);
                 const isOutlier = distance > allowedRadius;
@@ -210,9 +210,9 @@ function submitFinalAttendance() {
 
                 executeRegistration(lat, lon, false);
             },
-            () => {
+            (error) => {
                 statusMsg.style.color = "red";
-                statusMsg.textContent = "فشل تحديد الموقع. يرجى تفعيل الـ GPS والسماح للمتصفح.";
+                statusMsg.textContent = "❌ فشل تحديد الموقع. تأكد من تفعيل إذن الـ GPS في المتصفح.";
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
