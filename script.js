@@ -96,7 +96,7 @@ function calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// تسجيل الحضور الطبيعي بالـ GPS مع إذن الموقع + كود الاستثناء 9988
+// تسجيل الحضور بالـ GPS الحقيقي (مع نطاق 300 متر + كود الاستثناء 9988)
 function submitFinalAttendance() {
     const isAttendanceOpen = localStorage.getItem('isAttendanceOpen') === 'true';
     if (!isAttendanceOpen) {
@@ -110,30 +110,8 @@ function submitFinalAttendance() {
     const subject = localStorage.getItem('selectedSubject');
 
     const correctCode = "1234";
-    const bypassCode = "9988"; // كود الاستثناء للتسجيل من البيت
+    const bypassCode = "9988"; // كود الاستثناء للتسجيل من الخارج
 
     if (secretCode !== correctCode && secretCode !== bypassCode) {
         statusMsg.style.color = "red";
-        statusMsg.textContent = "الكود السري للمحاضرة غير صحيح!";
-        return;
-    }
-
-    // دالة لتنفيذ وتخزين عملية الحضور
-    function executeRegistration(lat, lon, isOutlier) {
-        const time = new Date().toLocaleString('ar-EG');
-        const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-
-        const record = {
-            id: user.id,
-            name: user.name,
-            phone: user.phone,
-            grade: user.grade,
-            subject: subject,
-            time: time,
-            locationLink: mapsUrl,
-            isOutlier: isOutlier
-        };
-
-        let allAttendance = JSON.parse(localStorage.getItem('allAttendanceRecords')) || [];
         
-        const alreadyRegistered = allAttendance.some(r => r.id === user.id && r.subject ===
